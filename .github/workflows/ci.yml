@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: CLI smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          mackv-opt --help
+          mackv-opt doctor --json
+          mackv-opt collect --output-dir ci-collect --models llama3.1:8b --json
+          mackv-opt audit ci-collect/manifest.json --no-require-artifacts --json || true
+          mackv-opt report ci-collect --table readiness-compact --format markdown
+          mackv-opt report ci-collect --table readiness --output-dir ci-collect/tables --output-prefix collect
+          mackv-opt capabilities --json
+          mackv-opt profile --json
+          mackv-opt plan llama3.1:8b \
+            --target-context 8k \
+            --memory-budget 12GiB \
+            --model-size 4.8GiB \
+            --hidden-size 4096 \
+            --layers 32 \
+            --heads 32 \
+            --kv-heads 8 \
+            --hardware-memory 16GiB \
+            --json
+          mackv-opt run llama3.1:8b \
+            --target-context 8k \
+            --memory-budget 12GiB \
+            --model-size 4.8GiB \
+            --hidden-size 4096 \
+            --layers 32 \
+            --heads 32 \
+            --kv-heads 8 \
+            --hardware-memory 16GiB \
+            --skip-capability-check \
+            --json
+          mackv-opt bench --models llama3.1:8b --contexts 8k --dry-run --json --repeats 2
+          mackv-opt baseline-template \
+            --output-dir ci-baselines \
+            --models llama3.1:8b \
+            --contexts 8k,16k \
+            --memory-budget 12GiB \
+            --json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("ci-baselines/llama3.1-8b")
+          for label, ctx in [("default", 8192), ("manual-num-ctx", 8192), ("mackv-opt", 16384)]:
+              path = root / label / "full-run.json"
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(json.dumps({
+                  "runs": [{"model": "llama3.1:8b", "context": ctx, "method": "ollama-api", "tokens_per_second": 1.0}],
+                  "stability_summary": {"models": [{"model": "llama3.1:8b", "max_stable_context": ctx}]}
+              }), encoding="utf-8")
+          PY
+          mackv-opt rq1-summary ci-baselines --output ci-baselines/rq1-summary.md
+          mackv-opt needle --models llama3.1:8b --contexts 8k --depths 50% --dry-run --json --repeats 2
+          mackv-opt qa --models llama3.1:8b --contexts 8k --depths 50% --dry-run --json --repeats 2
+          mackv-opt experiment llama3.1:8b \
+            --contexts 8k \
+            --memory-budget 12GiB \
+            --model-size 4.8GiB \
+            --hidden-size 4096 \
+            --layers 32 \
+            --heads 32 \
+            --kv-heads 8 \
+            --hardware-memory 16GiB \
+            --dry-run \
+            --repeats 2 \
+            --json \
+            --output-dir ci-artifacts \
+            --output-prefix full-run
+          mackv-opt report ci-artifacts/full-run.json \
+            --output-dir ci-artifacts/tables \
+            --output-prefix full-run
+          mackv-opt plot-memory ci-artifacts/full-run.json \
+            --output ci-artifacts/memory.svg
