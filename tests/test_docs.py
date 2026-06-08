@@ -13,12 +13,12 @@ def test_readme_has_language_switch_and_existing_chart_assets():
     assert "[简体中文](README.zh-CN.md)" in text
     assert (ROOT / "README.zh-CN.md").exists()
     assert "[English](README.md)" in chinese_text
-    assert "项目有效性" in chinese_text
+    assert "优化什么" in chinese_text
 
     for asset in [
         "docs/assets/mackv-opt-architecture.svg",
         "docs/assets/validation-snapshot.svg",
-        "docs/assets/rq1-summary-example.svg",
+        "docs/assets/baseline-summary-example.svg",
     ]:
         assert asset in text
         assert asset in chinese_text
@@ -34,5 +34,5 @@ def test_project_has_license_and_repository_metadata_notes():
     assert "KV cache and context planner" in text
     assert "https://github.com/Lin-Aurora/MacKV-Opt#readme" in text
     assert "python scripts/sync_github_metadata.py --apply" in text
-    for topic in ["apple-silicon", "ollama", "kv-cache", "long-context", "research-artifact"]:
+    for topic in ["apple-silicon", "ollama", "kv-cache", "long-context", "ollama-tools"]:
         assert topic in text

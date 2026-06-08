@@ -41,7 +41,7 @@ def write_baseline_template(
     for model in clean_models:
         model_dir = target / _safe_model_dir(model)
         model_dir.mkdir(parents=True, exist_ok=True)
-        (model_dir / "paper-tables").mkdir(parents=True, exist_ok=True)
+        (model_dir / "report-tables").mkdir(parents=True, exist_ok=True)
         _write_model_readme(model_dir, model, context_values, manual_context_text, memory_budget)
         baseline_dirs: dict[str, str] = {}
         for label in BASELINE_LABELS:
@@ -183,7 +183,7 @@ def _baseline_readme(manifest: dict[str, object]) -> str:
             f"# {manifest['label']} baseline",
             "",
             f"Model: `{manifest['model']}`",
-            f"Output artifact: `{manifest['artifact']}`",
+            f"Output file: `{manifest['artifact']}`",
             f"Memory budget: `{manifest.get('memory_budget') or 'not used'}`",
             "",
             "Run from this directory on the target Mac:",
@@ -230,7 +230,7 @@ def _write_model_readme(
         [
             f"# Baseline artifacts for {model}",
             "",
-            "This directory is a paper comparison template.",
+            "This directory is a baseline comparison template.",
             "",
             "- `default/`: default Ollama API run at the smallest context in the matrix.",
             "- `manual-num-ctx/`: manual `num_ctx` run at the selected manual context.",
@@ -259,7 +259,7 @@ def _compare_command(model_dir: Path) -> str:
         "mackv-opt=mackv-opt/full-run.json "
         "--baseline-label default "
         "--format markdown "
-        "> paper-tables/baseline-compare.md"
+            "> report-tables/baseline-compare.md"
     )
 
 
@@ -267,7 +267,7 @@ def _notes_for(label: str) -> str:
     if label == "default":
         return "Captures out-of-box Ollama API behavior without sending num_ctx."
     if label == "manual-num-ctx":
-        return "Captures the user or paper author choosing num_ctx manually."
+        return "Captures the user choosing num_ctx manually."
     return "Captures the MacKV-Opt automatic planner plus benchmark and quality checks."
 
 

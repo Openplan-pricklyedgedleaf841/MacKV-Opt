@@ -4,8 +4,8 @@ Use this file as the canonical public repository profile for MacKV-Opt.
 
 ## About
 
-KV cache and context planner for running longer local LLM contexts on Apple
-Silicon Macs with Ollama-compatible benchmarks.
+KV cache and context planner for longer local LLM contexts on Apple Silicon
+Macs with Ollama-compatible benchmarks.
 
 ## Homepage
 
@@ -24,7 +24,7 @@ https://github.com/Lin-Aurora/MacKV-Opt#readme
 - long-context
 - mlx
 - gguf
-- research-artifact
+- ollama-tools
 
 ## API Commands
 
@@ -46,7 +46,7 @@ If the GitHub CLI is available:
 
 ```bash
 gh repo edit Lin-Aurora/MacKV-Opt \
-  --description "KV cache and context planner for running longer local LLM contexts on Apple Silicon Macs with Ollama-compatible benchmarks." \
+  --description "KV cache and context planner for longer local LLM contexts on Apple Silicon Macs with Ollama-compatible benchmarks." \
   --homepage "https://github.com/Lin-Aurora/MacKV-Opt#readme" \
   --add-topic apple-silicon \
   --add-topic ollama \
@@ -59,7 +59,7 @@ gh repo edit Lin-Aurora/MacKV-Opt \
   --add-topic long-context \
   --add-topic mlx \
   --add-topic gguf \
-  --add-topic research-artifact
+  --add-topic ollama-tools
 ```
 
 If only the GitHub REST API is available, patch `description` and `homepage`

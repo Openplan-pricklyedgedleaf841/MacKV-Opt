@@ -1,10 +1,13 @@
 import json
 
+from mackv_opt.baseline_summary import (
+    build_baseline_summary_payload,
+    render_baseline_summary_markdown,
+)
 from mackv_opt.cli import main
-from mackv_opt.rq1 import build_rq1_summary_payload, render_rq1_markdown
 
 
-def _write_artifact(path, *, model, label, max_context, tps=10.0, memory=1024, accuracy=0.8):
+def _write_output(path, *, model, label, max_context, tps=10.0, memory=1024, accuracy=0.8):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
@@ -59,25 +62,25 @@ def _write_artifact(path, *, model, label, max_context, tps=10.0, memory=1024, a
     )
 
 
-def test_build_rq1_summary_payload_scans_three_baselines(tmp_path):
+def test_build_baseline_summary_payload_scans_three_baselines(tmp_path):
     model_dir = tmp_path / "llama3.1-8b"
-    _write_artifact(model_dir / "default" / "full-run.json", model="llama3.1:8b", label="default", max_context=8192)
-    _write_artifact(
+    _write_output(model_dir / "default" / "full-run.json", model="llama3.1:8b", label="default", max_context=8192)
+    _write_output(
         model_dir / "manual-num-ctx" / "full-run.json",
         model="llama3.1:8b",
         label="manual-num-ctx",
         max_context=16384,
     )
-    _write_artifact(
+    _write_output(
         model_dir / "mackv-opt" / "full-run.json",
         model="llama3.1:8b",
         label="mackv-opt",
         max_context=32768,
     )
 
-    payload = build_rq1_summary_payload(str(tmp_path))
+    payload = build_baseline_summary_payload(str(tmp_path))
 
-    assert payload["task"] == "rq1-summary"
+    assert payload["task"] == "baseline-summary"
     assert payload["machine_dir"] == str(tmp_path)
     assert payload["summary"]["model_count"] == 1
     assert payload["summary"]["complete_model_count"] == 1
@@ -91,27 +94,27 @@ def test_build_rq1_summary_payload_scans_three_baselines(tmp_path):
     assert row["best_label"] == "mackv-opt"
 
 
-def test_render_rq1_markdown_outputs_paper_table(tmp_path):
+def test_render_baseline_summary_markdown_outputs_table(tmp_path):
     model_dir = tmp_path / "m"
-    _write_artifact(model_dir / "default" / "full-run.json", model="m", label="default", max_context=8192)
-    _write_artifact(model_dir / "manual-num-ctx" / "full-run.json", model="m", label="manual", max_context=8192)
-    _write_artifact(model_dir / "mackv-opt" / "full-run.json", model="m", label="mackv-opt", max_context=16384)
+    _write_output(model_dir / "default" / "full-run.json", model="m", label="default", max_context=8192)
+    _write_output(model_dir / "manual-num-ctx" / "full-run.json", model="m", label="manual", max_context=8192)
+    _write_output(model_dir / "mackv-opt" / "full-run.json", model="m", label="mackv-opt", max_context=16384)
 
-    payload = build_rq1_summary_payload(str(tmp_path))
-    table = render_rq1_markdown(payload)
+    payload = build_baseline_summary_payload(str(tmp_path))
+    table = render_baseline_summary_markdown(payload)
 
     assert "| model | default_max_stable_context |" in table
     assert "| m | 8192 | 8192 | 16384 | 2.0 | 2.0 | mackv-opt |" in table
 
 
-def test_cli_rq1_summary_writes_output(tmp_path, capsys):
+def test_cli_baseline_summary_writes_output(tmp_path, capsys):
     model_dir = tmp_path / "m"
-    output = tmp_path / "rq1.md"
-    _write_artifact(model_dir / "default" / "full-run.json", model="m", label="default", max_context=8192)
-    _write_artifact(model_dir / "manual-num-ctx" / "full-run.json", model="m", label="manual", max_context=8192)
-    _write_artifact(model_dir / "mackv-opt" / "full-run.json", model="m", label="mackv-opt", max_context=16384)
+    output = tmp_path / "baseline-summary.md"
+    _write_output(model_dir / "default" / "full-run.json", model="m", label="default", max_context=8192)
+    _write_output(model_dir / "manual-num-ctx" / "full-run.json", model="m", label="manual", max_context=8192)
+    _write_output(model_dir / "mackv-opt" / "full-run.json", model="m", label="mackv-opt", max_context=16384)
 
-    code = main(["rq1-summary", str(tmp_path), "--output", str(output), "--format", "markdown"])
+    code = main(["baseline-summary", str(tmp_path), "--output", str(output), "--format", "markdown"])
 
     assert code == 0
     payload = json.loads(capsys.readouterr().out)

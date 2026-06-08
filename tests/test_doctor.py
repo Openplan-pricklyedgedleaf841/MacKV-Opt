@@ -45,7 +45,7 @@ def test_doctor_payload_passes_for_apple_silicon_ready_environment():
 
     assert payload["status"] == "pass"
     assert payload["ollama_model_count"] == 1
-    assert {check["name"]: check["status"] for check in payload["checks"]}["paper-readiness"] == "pass"
+    assert {check["name"]: check["status"] for check in payload["checks"]}["run-readiness"] == "pass"
     assert {check["name"]: check["status"] for check in payload["checks"]}["runtime-environment"] == "pass"
     assert payload["next_steps"] == ["Run `mackv-opt experiment ... --execute --repeats 3`."]
 
@@ -87,7 +87,7 @@ def test_doctor_payload_warns_on_non_mac_development_environment():
     assert payload["status"] == "warn"
     assert checks["hardware"]["status"] == "warn"
     assert "not macOS" in checks["hardware"]["message"]
-    assert checks["paper-readiness"]["status"] == "warn"
+    assert checks["run-readiness"]["status"] == "warn"
 
 
 def test_doctor_payload_fails_when_ollama_is_missing():

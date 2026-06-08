@@ -2,170 +2,184 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-MacKV-Opt 是一个面向 Apple Silicon Mac 本地大模型推理的优化工具。它不修改用户选择的模型，不上传数据，也不要求重新量化模型；它围绕 Ollama 和 llama.cpp 的现有能力，估算模型权重、KV cache、上下文长度和统一内存压力，并生成更稳妥的运行策略与论文实验 artifact。
+MacKV-Opt 是一个面向 Apple Silicon Mac 本地大模型推理的优化工具。它不改变用户选择的模型，不上传 prompt 或输出，帮助 Ollama 用户减少 memory pressure、swap 卡顿和反复试 `num_ctx` 的成本。
 
 ![MacKV-Opt 架构](docs/assets/mackv-opt-architecture.svg)
 
 ![验证快照](docs/assets/validation-snapshot.svg)
 
-![RQ1 汇表示例](docs/assets/rq1-summary-example.svg)
+![Baseline 汇总示例](docs/assets/baseline-summary-example.svg)
 
-## 项目有效性
+## 优化什么
 
-这个仓库不是单纯的想法说明，而是可以运行的研究 artifact。当前代码库已经包含 Python 包、CLI 入口、planner 测试、macOS profiler 测试、benchmark/report 测试、GitHub Actions smoke 检查，以及真实 Mac 实验操作清单。上方三张图分别展示已经实现的流程、验证快照和三套 baseline 汇总后的 RQ1 表格形态。
+长上下文推理会让 KV cache 随上下文长度近似线性增长。在统一内存 Mac 上，过大的上下文容易触发 memory pressure 和 swap；过小的上下文又浪费可用内存，迫使用户缩短输入。
 
-当前已经验证：
+MacKV-Opt 的作用是：
 
-- planner 和报告逻辑可通过 `python -m pytest -q` 验证；
-- profile、doctor、plan、run、bench、collect、report、compare、baseline-template、RQ1 summary、Needle 和 QA 都有非执行 smoke 路径；
-- 可以自动生成 default Ollama、manual `num_ctx`、MacKV-Opt 三套 baseline artifact 目录；
-- benchmark 日志中已经包含 macOS memory pressure、swap 和 `vm_stat` 采样字段。
+- 估算模型权重、KV cache、运行时开销和内存余量；
+- 按用户给定的内存预算选择更稳妥的 `num_ctx`；
+- 在 llama.cpp 可用时给出 KV cache 类型和 offload 参数建议；
+- 提醒 Ollama、llama.cpp、模型元数据或内存采样能力是否缺失；
+- 用同一个模型和 prompt 对比 default Ollama、manual `num_ctx` 和 MacKV-Opt。
 
-仍需在真实硬件上完成后才能写入论文性能结论：
-
-- 在 16GB、32GB、64GB Apple Silicon Mac 上执行真实 Ollama 实验；
-- 测量三套 baseline 的最大稳定上下文、tokens/s、首 token 延迟、峰值 RSS、swap/pageout delta 和质量保持结果。
-
-## 仓库展示信息
-
-- About：KV cache and context planner for running longer local LLM contexts on Apple Silicon Macs with Ollama-compatible benchmarks.
-- Homepage：<https://github.com/Lin-Aurora/MacKV-Opt#readme>
-- Topics：`apple-silicon`、`ollama`、`llama-cpp`、`kv-cache`、`local-llm`、`llm-inference`、`macos`、`benchmark`、`long-context`、`mlx`、`gguf`、`research-artifact`。
-
-同一份设置记录在 [docs/GITHUB_REPOSITORY_METADATA.md](docs/GITHUB_REPOSITORY_METADATA.md)，方便仓库管理员在 GitHub Settings 中同步；环境中有 GitHub token 时，也可以用 `python scripts/sync_github_metadata.py --apply` 应用。
-
-## 目标
-
-MacKV-Opt 解决的是 Mac 本地运行大模型时最常见的一组问题：
-
-- 长上下文会让 KV cache 线性增长，容易触发 memory pressure、swap 和 tokens/s 断崖。
-- Ollama 易用，但默认上下文、手动 `num_ctx`、底层 cache 参数之间缺少可复现实验闭环。
-- 用户希望保留原模型，只调整运行策略，而不是重新量化或换模型。
-- 论文需要固定 artifact：硬件信息、模型元数据、运行矩阵、质量任务、内存采样和对照表。
-
-## 安装
-
-```bash
-python -m pip install -e .
-python -m pip install -e ".[dev]"
-```
-
-不安装也可以直接运行：
-
-```bash
-python -m mackv_opt.cli --help
-```
+它不是凭空加速器。它的优化效果来自更准确地使用本机内存预算：减少长上下文失败、降低 swap 导致的速度断崖，并在有内存余量时让可用上下文更长。
 
 ## 快速开始
 
+安装：
+
+```bash
+python -m pip install -e .
+```
+
+检查机器：
+
 ```bash
 mackv-opt doctor
+```
+
+最简单的自动规划：
+
+```bash
+mackv-opt auto llama3.1:8b --memory-budget 12GiB
+```
+
+需要调用本地 Ollama 时再加 `--execute`：
+
+```bash
+mackv-opt auto llama3.1:8b \
+  --memory-budget 12GiB \
+  --prompt "Summarize this document" \
+  --execute
+```
+
+规划指定上下文：
+
+```bash
 mackv-opt plan llama3.1:8b --target-context 64k --memory-budget 12GiB
+```
+
+Ollama 元数据不完整时，可以手动补充：
+
+```bash
+mackv-opt plan llama3.1:8b \
+  --target-context 64k \
+  --memory-budget 12GiB \
+  --model-size 4.8GiB \
+  --hidden-size 4096 \
+  --layers 32 \
+  --heads 32 \
+  --kv-heads 8 \
+  --hardware-memory 16GiB
+```
+
+## 原理
+
+核心估算：
+
+```text
+estimated_total = model_weights + KV_cache(context, layers, hidden, GQA_ratio, KV_type) + runtime_overhead
+```
+
+planner 会从目标上下文向下搜索，选择能放进内存预算的最大配置。内存足够时优先使用质量更高的 KV cache 类型；内存紧张时再切换到更紧凑的类型；仍然放不下时才降低上下文。
+
+对 Ollama，MacKV-Opt 输出 `num_ctx` 和 `num_gpu` 选项。对 llama.cpp，它还会输出 `--ctx-size`、`--cache-type-k`、`--cache-type-v` 和 `--kv-offload` 参数。
+
+## 和其他方式对比
+
+| 方式 | 用户怎么做 | 主要问题 | MacKV-Opt 的作用 |
+| --- | --- | --- | --- |
+| Default Ollama | 直接运行模型 | 上下文可能不适合当前任务和内存 | 记录默认对照 |
+| 手动 `num_ctx` | 凭经验填写上下文 | 容易超内存或浪费余量 | 先估算再运行 |
+| llama.cpp 参数 | 直接调底层参数 | 参数强但容易配错 | 把内存预算转换成具体参数 |
+| MLX/其他运行时 | 换推理栈 | 可能改变模型格式或工作流 | 保留 Ollama 优先工作流 |
+| KV 压缩库 | 接入专门算法 | 常需要改运行时代码 | 先复用现有运行时能力 |
+
+## 验证优化效果
+
+生成三套可对比目录：
+
+```bash
 mackv-opt baseline-template \
   --output-dir experiments/m2-16gb \
   --models llama3.1:8b \
   --contexts 8k,16k,32k \
   --memory-budget 12GiB
-mackv-opt experiment llama3.1:8b \
-  --contexts 8k,16k,32k \
-  --memory-budget 12GiB \
-  --dry-run --json
 ```
 
-真实 Mac 实验请从这份清单开始：
-[docs/REAL_MAC_EXPERIMENT_CHECKLIST.md](docs/REAL_MAC_EXPERIMENT_CHECKLIST.md)
+分别运行这些目录里的 `run.sh`：
 
-## 核心命令
+```text
+experiments/m2-16gb/llama3.1-8b/default/
+experiments/m2-16gb/llama3.1-8b/manual-num-ctx/
+experiments/m2-16gb/llama3.1-8b/mackv-opt/
+```
 
-检测本机和运行环境：
+汇总对比：
 
 ```bash
-mackv-opt doctor --json
+mackv-opt compare \
+  default=experiments/m2-16gb/llama3.1-8b/default/full-run.json \
+  manual-num-ctx=experiments/m2-16gb/llama3.1-8b/manual-num-ctx/full-run.json \
+  mackv-opt=experiments/m2-16gb/llama3.1-8b/mackv-opt/full-run.json \
+  --baseline-label default \
+  --format markdown
+```
+
+多模型矩阵：
+
+```bash
+./scripts/run_macos_matrix.sh
+MACKV_EXECUTE=1 MACKV_MEMORY_BUDGET=20GiB ./scripts/run_macos_matrix.sh
+```
+
+16GB、32GB、64GB 的验证预设见 [docs/MAC_VALIDATION_CHECKLIST.md](docs/MAC_VALIDATION_CHECKLIST.md)。
+
+## 没有 Mac 怎么测试
+
+没有 Apple Silicon Mac 时仍然可以完成大部分开发验证：
+
+- 在 Windows 或 Linux 上运行 `python -m pytest -q`；
+- 用手动 metadata 和 `--hardware-memory` 测 planner；
+- 用 `--dry-run` 跑 `bench`、`experiment`、`needle`、`qa`；
+- 用 fixture JSON 生成 baseline 目录和 compare 报告；
+- 用 GitHub Actions 的 macOS runner 做打包和 CLI smoke；
+- 借用、租用或接入 self-hosted Apple Silicon Mac 做可执行 Ollama 验证。
+
+非 Mac 环境不能证明 Apple 统一内存压力、Metal 路径、Ollama tokens/s 和目标 Mac 的最大稳定上下文。这些必须在安装了 Ollama 和目标模型的 Apple Silicon Mac 上测。
+
+## 常用命令
+
+```bash
 mackv-opt profile --json
+mackv-opt doctor --json
 mackv-opt capabilities --json
+mackv-opt collect --output-dir experiments/m2-16gb/collect --models llama3.1:8b --json
+mackv-opt audit experiments/m2-16gb/collect/manifest.json --json
+mackv-opt auto llama3.1:8b --memory-budget 12GiB
+mackv-opt run llama3.1:8b --target-context 64k --memory-budget 12GiB
+mackv-opt bench --models llama3.1:8b --contexts 8k,16k,32k --dry-run --json
+mackv-opt experiment llama3.1:8b --contexts 8k,16k,32k --memory-budget 12GiB --dry-run --json
+mackv-opt report full-run.json --table performance
+mackv-opt plot-memory full-run.json --output memory-series.svg
 ```
 
-生成优化计划：
-
-```bash
-mackv-opt plan llama3.1:8b \
-  --target-context 64k \
-  --memory-budget 20GiB
-```
-
-生成三套 baseline 目录：
-
-```bash
-mackv-opt baseline-template \
-  --output-dir experiments/m2-16gb \
-  --models llama3.1:8b,qwen2.5:7b \
-  --contexts 8k,16k,32k \
-  --memory-budget 12GiB \
-  --json
-```
-
-执行 benchmark：
-
-```bash
-mackv-opt bench \
-  --models llama3.1:8b \
-  --contexts 8k,16k,32k \
-  --execute --json \
-  --repeats 3 \
-  --stable-context-policy all \
-  --include-memory-series \
-  --output-dir experiments/m2-16gb \
-  --output-prefix llama3-8b-longctx
-```
-
-生成 RQ1 论文表：
-
-```bash
-mackv-opt rq1-summary experiments/m2-16gb \
-  --output experiments/m2-16gb/rq1-summary.md
-```
-
-## 实验输出
-
-MacKV-Opt 可以生成：
-
-- `collect/manifest.json` 和 `collect-audit.json`
-- `doctor.json`、`machine-profile.json`、`runtime-capabilities.json`
-- `default/full-run.json`
-- `manual-num-ctx/full-run.json`
-- `mackv-opt/full-run.json`
-- context/performance/memory/quality/stability 表
-- RQ1 汇总表
-- memory SVG 曲线
-
-macOS 上的可执行 benchmark 会记录：
-
-- tokens/s 和首 token 延迟代理指标
-- Ollama process RSS 峰值
-- memory pressure
-- swap delta
-- `vm_stat` pagein/pageout/swapin/swapout delta
-- Needle 和 QA 质量检查结果
+`run`、`bench`、`needle`、`qa` 和 `experiment` 只有在传入 `--execute` 时才会调用本地推理。
 
 ## 安全和隐私
 
-MacKV-Opt 是本地工具：
-
-- 不修改、替换或重新量化用户模型。
-- 不上传 prompt、输出、硬件信息或实验日志。
-- 默认 dry-run，不会自动启动真实推理。
-- 只有用户明确加 `--execute` 时才调用本地 Ollama API。
-
-## 当前状态
-
-当前仓库包含 CLI、测试、CI、真实 Mac 实验清单和论文 artifact 生成流程。项目已经可以用于 dry-run、artifact 准备、baseline 对照目录生成、RQ1 表格汇总和本地 Ollama API benchmark。
-
-真实性能结论仍需要在 16GB、32GB、64GB Apple Silicon Mac 上按清单执行后再写入论文。
+- 不替换模型。
+- 不改写权重。
+- 不自动重新量化。
+- 不依赖云服务。
+- 不上传 prompt 或输出。
+- 不持久修改 Ollama 配置，除非用户执行打印出来的命令或主动传入 `--execute`。
 
 ## 开发
 
 ```bash
+python -m pip install -e ".[dev]"
 python -m pytest -q
 ```
 
-GitHub Actions 会在 Ubuntu 和 macOS 上运行测试与 CLI smoke，不需要下载模型。
+CI 会在 Ubuntu 和 macOS 上验证打包、单元测试和非执行 CLI smoke，不下载模型，也不调用 Ollama 推理。

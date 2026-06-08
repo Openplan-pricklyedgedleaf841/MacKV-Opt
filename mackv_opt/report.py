@@ -56,11 +56,11 @@ REPORT_COLUMNS = [
     "response_excerpt",
 ]
 
-PAPER_TABLES: dict[str, list[str]] = {
+FIXED_TABLES: dict[str, list[str]] = {
     "readiness-compact": [
-        "paper_ready",
+        "ready",
         "status",
-        "artifact_type",
+        "output_type",
         "component_count",
         "model_count",
         "platform",
@@ -85,7 +85,7 @@ PAPER_TABLES: dict[str, list[str]] = {
         "next_step",
     ],
     "readiness": [
-        "artifact_type",
+        "output_type",
         "component",
         "status",
         "model",
@@ -339,19 +339,19 @@ def render_report_csv(rows: Iterable[dict[str, Any]]) -> str:
     return _render_csv_table(rows, REPORT_COLUMNS)
 
 
-def render_paper_table_markdown(rows: Iterable[dict[str, Any]], table: str) -> str:
-    columns = _paper_table_columns(table)
-    filtered = _paper_table_rows((_normalize_row(row) for row in rows), table)
+def render_fixed_table_markdown(rows: Iterable[dict[str, Any]], table: str) -> str:
+    columns = _fixed_table_columns(table)
+    filtered = _fixed_table_rows((_normalize_row(row) for row in rows), table)
     return _render_markdown_table(filtered, columns)
 
 
-def render_paper_table_csv(rows: Iterable[dict[str, Any]], table: str) -> str:
-    columns = _paper_table_columns(table)
-    filtered = _paper_table_rows((_normalize_row(row) for row in rows), table)
+def render_fixed_table_csv(rows: Iterable[dict[str, Any]], table: str) -> str:
+    columns = _fixed_table_columns(table)
+    filtered = _fixed_table_rows((_normalize_row(row) for row in rows), table)
     return _render_csv_table(filtered, columns)
 
 
-def write_paper_tables(
+def write_fixed_tables(
     rows: Iterable[dict[str, Any]],
     output_dir: str,
     *,
@@ -362,7 +362,7 @@ def write_paper_tables(
     target = Path(output_dir)
     target.mkdir(parents=True, exist_ok=True)
     normalized = list(rows)
-    selected = list(tables) if tables is not None else list(PAPER_TABLES)
+    selected = list(tables) if tables is not None else list(FIXED_TABLES)
     extension = "csv" if fmt == "csv" else "md"
     written: dict[str, str] = {}
     for table in selected:
@@ -370,9 +370,9 @@ def write_paper_tables(
         if not name:
             continue
         if fmt == "csv":
-            rendered = render_paper_table_csv(normalized, name)
+            rendered = render_fixed_table_csv(normalized, name)
         else:
-            rendered = render_paper_table_markdown(normalized, name) + "\n"
+            rendered = render_fixed_table_markdown(normalized, name) + "\n"
         path = target / f"{prefix}-{name}.{extension}"
         path.write_text(rendered, encoding="utf-8")
         written[name] = str(path)
@@ -398,15 +398,15 @@ def _render_csv_table(rows: Iterable[dict[str, Any]], columns: list[str]) -> str
     return output.getvalue()
 
 
-def _paper_table_columns(table: str) -> list[str]:
+def _fixed_table_columns(table: str) -> list[str]:
     try:
-        return PAPER_TABLES[table]
+        return FIXED_TABLES[table]
     except KeyError as exc:
-        choices = ", ".join(sorted(PAPER_TABLES))
-        raise ValueError(f"Unknown paper table {table!r}; choose one of: {choices}") from exc
+        choices = ", ".join(sorted(FIXED_TABLES))
+        raise ValueError(f"Unknown fixed table {table!r}; choose one of: {choices}") from exc
 
 
-def _paper_table_rows(rows: Iterable[dict[str, Any]], table: str) -> list[dict[str, Any]]:
+def _fixed_table_rows(rows: Iterable[dict[str, Any]], table: str) -> list[dict[str, Any]]:
     normalized = list(rows)
     if table == "readiness":
         return [row for row in normalized if row.get("method") == "readiness"]
@@ -422,7 +422,7 @@ def _paper_table_rows(rows: Iterable[dict[str, Any]], table: str) -> list[dict[s
         return [row for row in normalized if row.get("method") in {"needle", "qa"} or row.get("found") != ""]
     if table == "stability":
         return [row for row in normalized if row.get("method") in {"stability-context", "stability-summary"}]
-    _paper_table_columns(table)
+    _fixed_table_columns(table)
     return normalized
 
 
@@ -503,7 +503,8 @@ def _normalize_row(record: dict[str, Any]) -> dict[str, Any]:
         "accuracy": _value_or_empty(source.get("accuracy")),
         "runs": _value_or_empty(source.get("runs")),
         "response_excerpt": source.get("response_excerpt") or "",
-        "artifact_type": source.get("artifact_type") or "",
+        "output_type": source.get("output_type") or source.get("artifact_type") or "",
+        "artifact_type": source.get("artifact_type") or source.get("output_type") or "",
         "component": source.get("component") or "",
         "model_count": _value_or_empty(source.get("model_count")),
         "check": source.get("check") or "",
@@ -548,7 +549,7 @@ def _normalize_row(record: dict[str, Any]) -> dict[str, Any]:
         "failed_checks": _format_list(source.get("failed_checks")),
         "warning_checks": _format_list(source.get("warning_checks")),
         "next_step": source.get("next_step") or "",
-        "paper_ready": source.get("paper_ready") if source.get("paper_ready") is not None else "",
+        "ready": source.get("ready") if source.get("ready") is not None else "",
         "component_count": _value_or_empty(source.get("component_count")),
         "metadata_complete": source.get("metadata_complete")
         if source.get("metadata_complete") is not None
@@ -802,20 +803,21 @@ def _compact_readiness_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
         return {
             "method": "readiness",
-            "paper_ready": False,
+            "ready": False,
             "status": "missing",
+            "output_type": "readiness-compact",
             "artifact_type": "readiness-compact",
             "message": "No readiness rows were available.",
             "next_step": "Run `mackv-opt collect` and `mackv-opt audit`, then render `report --table readiness`.",
         }
     normalized = [_normalize_row(row) for row in rows]
     failed = _unique(
-        row.get("check") or row.get("component") or row.get("artifact_type")
+        row.get("check") or row.get("component") or row.get("output_type") or row.get("artifact_type")
         for row in normalized
         if row.get("status") == "fail"
     )
     warning = _unique(
-        row.get("check") or row.get("component") or row.get("artifact_type")
+        row.get("check") or row.get("component") or row.get("output_type") or row.get("artifact_type")
         for row in normalized
         if row.get("status") == "warn"
     )
@@ -840,7 +842,7 @@ def _compact_readiness_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
     ]
     is_apple_silicon = _first_value(normalized, "is_apple_silicon")
     ollama_available = _first_value(normalized, "ollama_available")
-    paper_ready = (
+    ready = (
         not failed
         and is_apple_silicon is True
         and ollama_available is True
@@ -855,8 +857,9 @@ def _compact_readiness_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
         next_steps.append("Fill missing KV metadata for: " + ", ".join(str(model) for model in incomplete_metadata) + ".")
     return {
         "method": "readiness",
-        "paper_ready": paper_ready,
-        "status": "pass" if paper_ready else "fail" if failed else "warn",
+        "ready": ready,
+        "status": "pass" if ready else "fail" if failed else "warn",
+        "output_type": "readiness-compact",
         "artifact_type": "readiness-compact",
         "component_count": len(normalized),
         "model_count": model_count,

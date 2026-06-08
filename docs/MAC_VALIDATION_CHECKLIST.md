@@ -1,10 +1,10 @@
-# Real Mac experiment checklist
+# Mac Validation Checklist
 
-This checklist is for paper runs on 16GB, 32GB, and 64GB Apple Silicon Macs.
-It keeps the selected Ollama model unchanged and records enough evidence to
-compare default Ollama, manual `num_ctx`, and MacKV-Opt.
+Use this checklist to measure whether MacKV-Opt improves usable local context on
+16GB, 32GB, and 64GB Apple Silicon Macs. The selected Ollama model stays
+unchanged.
 
-## 1. Prepare each Mac
+## 1. Prepare Each Mac
 
 - Install Python 3.10 or newer.
 - Install Ollama and start the Ollama service.
@@ -25,11 +25,11 @@ mackv-opt --help
 
 - Plug the Mac into AC power.
 - Disable Low Power Mode.
-- Close heavy background apps for best-case runs.
-- Let the machine cool down before the first executable run.
-- Keep a short note of background apps and room/thermal conditions.
+- Close heavy background apps for best-case validation.
+- Let the machine cool down before executable runs.
+- Keep short notes for background apps and room or thermal conditions.
 
-## 2. Collect readiness evidence
+## 2. Collect Readiness Data
 
 Run this once per Mac:
 
@@ -45,8 +45,8 @@ Inspect:
 
 - `experiments/MACHINE/collect/manifest.json`
 - `experiments/MACHINE/collect-audit.json`
-- `experiments/MACHINE/paper-tables/readiness-readiness-compact.md`
-- `experiments/MACHINE/paper-tables/readiness-readiness.md`
+- `experiments/MACHINE/report-tables/readiness-readiness-compact.md`
+- `experiments/MACHINE/report-tables/readiness-readiness.md`
 
 If the audit reports missing KV metadata, create an override file and rerun:
 
@@ -54,9 +54,7 @@ If the audit reports missing KV metadata, create an override file and rerun:
 MACKV_MODEL_METADATA_OVERRIDES=model-overrides.json ./scripts/run_macos_matrix.sh
 ```
 
-Do not run executable experiments until the audit is acceptable for the paper.
-
-## 3. Generate baseline directories
+## 3. Generate Baseline Directories
 
 The matrix script creates these directories by default:
 
@@ -65,7 +63,7 @@ experiments/MACHINE/MODEL/
   default/
   manual-num-ctx/
   mackv-opt/
-  paper-tables/
+  report-tables/
 ```
 
 You can generate them explicitly:
@@ -75,16 +73,14 @@ mackv-opt baseline-template \
   --output-dir experiments/MACHINE \
   --models llama3.1:8b,qwen2.5:7b,mistral:7b \
   --contexts 8k,16k,32k,64k \
-  --memory-budget 20GiB \
-  --json
+  --memory-budget 20GiB
 ```
 
-Run each `run.sh` from its own directory when collecting direct baseline
-artifacts.
+Run each generated `run.sh` from its own directory.
 
-## 4. 16GB execute preset
+## 4. 16GB Preset
 
-Use 16GB machines for the first failure-boundary study:
+Use 16GB machines for the first failure-boundary sweep:
 
 ```bash
 MACKV_MACHINE=m2-16gb \
@@ -101,10 +97,10 @@ MACKV_EXECUTE=1 \
 Expected outputs:
 
 - `experiments/m2-16gb/MODEL/mackv-opt/full-run.json`
-- `experiments/m2-16gb/MODEL/paper-tables/MODEL-compare.md`
+- `experiments/m2-16gb/MODEL/report-tables/MODEL-compare.md`
 - `experiments/m2-16gb/matrix-compare.md`
 
-## 5. 32GB execute preset
+## 5. 32GB Preset
 
 Use 32GB machines for 64k context measurements:
 
@@ -120,7 +116,7 @@ MACKV_EXECUTE=1 \
 ./scripts/run_macos_matrix.sh
 ```
 
-## 6. 64GB execute preset
+## 6. 64GB Preset
 
 Use 64GB machines for 128k context scaling:
 
@@ -136,7 +132,7 @@ MACKV_EXECUTE=1 \
 ./scripts/run_macos_matrix.sh
 ```
 
-## 7. Required artifacts per machine
+## 7. Required Outputs Per Machine
 
 - `collect/manifest.json`
 - `collect/manifest.md`
@@ -152,9 +148,9 @@ MACKV_EXECUTE=1 \
 - machine-level `matrix-compare.md`
 - memory SVGs for runs captured with `--include-memory-series`
 
-## 8. Minimum run notes
+## 8. Minimum Run Notes
 
-Record these in a lab notebook or machine README:
+Record these in a local note:
 
 - Mac model and chip.
 - Unified memory size.
@@ -167,14 +163,14 @@ Record these in a lab notebook or machine README:
 - Model tags and model file hashes if available.
 - Any metadata override file used.
 
-## 9. RQ1 table generation
+## 9. Baseline Summary
 
-After each model has all three baseline artifacts:
+After each model has all three baseline outputs:
 
 ```bash
-mackv-opt rq1-summary experiments/m2-16gb \
-  --output experiments/m2-16gb/rq1-summary.md
+mackv-opt baseline-summary experiments/m2-16gb \
+  --output experiments/m2-16gb/baseline-summary.md
 ```
 
-Use the Markdown output in the paper draft and keep the JSON/CSV versions as
-supplementary artifacts.
+Use the Markdown, CSV, or JSON output to compare max stable context, throughput,
+memory, and quality across the three methods.

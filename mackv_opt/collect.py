@@ -200,7 +200,7 @@ def audit_model_profile(profile: dict[str, Any] | None) -> dict[str, Any]:
             "Missing required planner metadata; KV budget estimates will rely on conservative inference."
         )
     if missing_recommended:
-        warnings.append("Missing recommended metadata for paper reproducibility.")
+        warnings.append("Missing recommended metadata for repeatable validation.")
     return {
         "status": "pass" if not missing_required else "warn",
         "missing_required_fields": missing_required,
@@ -276,7 +276,7 @@ def _check_manifest_shape(manifest: dict[str, Any]) -> dict[str, Any]:
         "fail",
         "Input is not a MacKV-Opt collection manifest.",
         {"task": manifest.get("task")},
-        "Run `mackv-opt collect --output-dir ...` before paper experiments.",
+        "Run `mackv-opt collect --output-dir ...` before executable validation.",
     )
 
 
@@ -320,7 +320,7 @@ def _check_doctor_status(manifest: dict[str, Any]) -> dict[str, Any]:
             "warn",
             "Doctor preflight has warnings.",
             {"doctor_status": status},
-            "Resolve or explicitly justify doctor warnings before paper-grade runs.",
+            "Resolve or explicitly note doctor warnings before benchmark runs.",
         )
     return _audit_check(
         "doctor",
@@ -360,14 +360,14 @@ def _check_hardware_profile(
             "fail",
             "Apple Silicon hardware is required but was not verified.",
             evidence,
-            "Run collection on the target Apple Silicon Mac before executable paper experiments.",
+            "Run collection on the target Apple Silicon Mac before executable validation.",
         )
     return _audit_check(
         "hardware",
         "warn",
         "Apple Silicon hardware was not verified.",
         evidence,
-        "Use `--require-apple-silicon` for final paper experiments.",
+        "Use `--require-apple-silicon` when validating Apple Silicon-specific results.",
     )
 
 
@@ -411,7 +411,7 @@ def _check_model_metadata(manifest: dict[str, Any], *, fail_on_missing_metadata:
             status,
             "Some model profiles are missing KV-budget-critical metadata.",
             {"incomplete_models": incomplete_models},
-            "Fill missing metadata manually or report planner fallback estimates in the paper.",
+            "Fill missing metadata manually or treat planner fallback estimates as approximate.",
         )
     return _audit_check(
         "model-metadata",

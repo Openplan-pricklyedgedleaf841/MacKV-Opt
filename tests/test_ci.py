@@ -25,5 +25,5 @@ def test_github_actions_ci_workflow_covers_tests_and_cli_smoke():
     assert "mackv-opt experiment" in text
     assert "mackv-opt qa" in text
     assert "mackv-opt report" in text
-    assert "mackv-opt rq1-summary" in text
+    assert "mackv-opt baseline-summary" in text
     assert "mackv-opt plot-memory" in text

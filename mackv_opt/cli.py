@@ -5,6 +5,12 @@ import sys
 from typing import Sequence
 
 from .baseline import write_baseline_template
+from .baseline_summary import (
+    build_baseline_summary_payload,
+    render_baseline_summary_csv,
+    render_baseline_summary_json,
+    render_baseline_summary_markdown,
+)
 from .bench import DEFAULT_OLLAMA_BASE_URL, DEFAULT_PROMPT, dry_run_payload, execute_bench_payload
 from .capabilities import detect_runtime_capabilities
 from .collect import (
@@ -27,15 +33,14 @@ from .quality import dry_run_needle_payload, dry_run_qa_payload, execute_needle_
 from .report import (
     load_report_payload,
     normalize_report_rows,
-    render_paper_table_csv,
-    render_paper_table_markdown,
+    render_fixed_table_csv,
+    render_fixed_table_markdown,
     render_plan_text,
     render_report_csv,
     render_report_markdown,
     write_experiment_artifacts,
-    write_paper_tables,
+    write_fixed_tables,
 )
-from .rq1 import build_rq1_summary_payload, render_rq1_csv, render_rq1_json, render_rq1_markdown
 from .stability import StabilityConfig
 from .units import parse_context, parse_size
 
@@ -55,6 +60,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_capabilities(args)
     if args.command == "plan":
         return _cmd_plan(args)
+    if args.command == "auto":
+        return _cmd_auto(args)
     if args.command == "run":
         return _cmd_run(args)
     if args.command == "bench":
@@ -71,8 +78,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_report(args)
     if args.command == "compare":
         return _cmd_compare(args)
-    if args.command == "rq1-summary":
-        return _cmd_rq1_summary(args)
+    if args.command == "baseline-summary":
+        return _cmd_baseline_summary(args)
     if args.command == "plot-memory":
         return _cmd_plot_memory(args)
     parser.print_help()
@@ -89,11 +96,11 @@ def build_parser() -> argparse.ArgumentParser:
     profile = sub.add_parser("profile", help="Detect hardware and local Ollama models.")
     profile.add_argument("--json", action="store_true", help="Emit JSON.")
 
-    doctor = sub.add_parser("doctor", help="Run a read-only preflight check for MacKV-Opt experiments.")
+    doctor = sub.add_parser("doctor", help="Run a read-only local readiness check.")
     doctor.add_argument("--json", action="store_true", help="Emit JSON.")
 
-    collect = sub.add_parser("collect", help="Collect read-only preflight artifacts for reproducible experiments.")
-    collect.add_argument("--output-dir", required=True, help="Directory for doctor/profile/capability/model artifacts.")
+    collect = sub.add_parser("collect", help="Collect read-only diagnostics for repeatable local validation.")
+    collect.add_argument("--output-dir", required=True, help="Directory for doctor/profile/capability/model outputs.")
     collect.add_argument("--models", help="Comma-separated model names. Defaults to local Ollama model list.")
     collect.add_argument(
         "--skip-raw-model-json",
@@ -106,7 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     collect.add_argument("--json", action="store_true", help="Emit JSON manifest.")
 
-    audit = sub.add_parser("audit", help="Audit a collect manifest before executable experiments.")
+    audit = sub.add_parser("audit", help="Audit a collect manifest before executable validation runs.")
     audit.add_argument("manifest", help="Path to collect/manifest.json.")
     audit.add_argument(
         "--fail-on-missing-metadata",
@@ -139,6 +146,17 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--skip-capability-check", action="store_true")
     plan.add_argument("--json", action="store_true")
 
+    auto = sub.add_parser("auto", help="Plan the largest safe context and print or execute an Ollama command.")
+    _add_model_args(auto)
+    auto.add_argument("model")
+    auto.add_argument("--target-context", default="128k")
+    auto.add_argument("--memory-budget")
+    auto.add_argument("--hardware-memory")
+    auto.add_argument("--prompt")
+    auto.add_argument("--skip-capability-check", action="store_true")
+    auto.add_argument("--execute", action="store_true", help="Execute local Ollama command instead of printing it.")
+    auto.add_argument("--json", action="store_true")
+
     run = sub.add_parser("run", help="Print or execute an Ollama run command with planned options.")
     _add_model_args(run)
     run.add_argument("model")
@@ -162,7 +180,7 @@ def build_parser() -> argparse.ArgumentParser:
     bench.add_argument(
         "--use-ollama-default-options",
         action="store_true",
-        help="Do not send num_ctx; useful for default Ollama baseline artifacts.",
+        help="Do not send num_ctx; useful for default Ollama baseline outputs.",
     )
     bench.add_argument("--repeats", type=int, default=1, help="Repeat each benchmark cell this many times.")
     bench.add_argument("--memory-sample-interval", type=float, default=0.5, help="Seconds between memory samples.")
@@ -179,7 +197,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     baseline_template = sub.add_parser(
         "baseline-template",
-        help="Create default, manual-num-ctx, and mackv-opt baseline artifact directories.",
+        help="Create default, manual-num-ctx, and mackv-opt baseline output directories.",
     )
     baseline_template.add_argument("--output-dir", required=True, help="Directory that will receive template folders.")
     baseline_template.add_argument("--models", required=True, help="Comma-separated model names.")
@@ -190,7 +208,7 @@ def build_parser() -> argparse.ArgumentParser:
     baseline_template.add_argument("--repeats", type=int, default=3)
     baseline_template.add_argument("--json", action="store_true")
 
-    report = sub.add_parser("report", help="Render experiment or readiness JSON as a paper table.")
+    report = sub.add_parser("report", help="Render run or readiness JSON as a table.")
     report.add_argument(
         "inputs",
         nargs="+",
@@ -202,24 +220,27 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["all", "readiness", "readiness-compact", "context", "performance", "memory", "quality", "stability"],
         default="all",
     )
-    report.add_argument("--output-dir", help="Write fixed paper tables into this directory.")
+    report.add_argument("--output-dir", help="Write fixed tables into this directory.")
     report.add_argument("--output-prefix", default="mackv-opt-table")
     report.add_argument("--tables", default="readiness-compact,readiness,context,performance,memory,quality,stability")
 
-    compare = sub.add_parser("compare", help="Compare multiple experiment artifacts as a paper baseline table.")
+    compare = sub.add_parser("compare", help="Compare multiple run outputs as a baseline table.")
     compare.add_argument(
         "inputs",
         nargs="+",
-        help="Artifact paths, optionally labeled as LABEL=path.",
+        help="Output paths, optionally labeled as LABEL=path.",
     )
     compare.add_argument("--format", choices=["markdown", "csv", "json"], default="markdown")
     compare.add_argument("--output", help="Write the rendered comparison table to this path.")
     compare.add_argument("--baseline-label", help="Label to use as the relative-improvement baseline.")
 
-    rq1 = sub.add_parser("rq1-summary", help="Summarize default/manual-num-ctx/mackv-opt artifacts for RQ1.")
-    rq1.add_argument("machine_dir", help="Machine experiment directory containing per-model baseline folders.")
-    rq1.add_argument("--format", choices=["markdown", "csv", "json"], default="markdown")
-    rq1.add_argument("--output", help="Write the rendered RQ1 table to this path.")
+    baseline_summary = sub.add_parser(
+        "baseline-summary",
+        help="Summarize default/manual-num-ctx/mackv-opt baseline outputs.",
+    )
+    baseline_summary.add_argument("machine_dir", help="Directory containing per-model baseline folders.")
+    baseline_summary.add_argument("--format", choices=["markdown", "csv", "json"], default="markdown")
+    baseline_summary.add_argument("--output", help="Write the rendered baseline table to this path.")
 
     plot_memory = sub.add_parser("plot-memory", help="Render memory_series from JSON as an SVG plot.")
     plot_memory.add_argument("input", help="Benchmark or experiment JSON containing memory_series.")
@@ -257,7 +278,7 @@ def build_parser() -> argparse.ArgumentParser:
     qa.add_argument("--save-formats", default="json,markdown,csv")
     qa.add_argument("--json", action="store_true")
 
-    experiment = sub.add_parser("experiment", help="Run plan, benchmark, and quality checks as one experiment.")
+    experiment = sub.add_parser("experiment", help="Run plan, benchmark, and quality checks as one validation flow.")
     _add_model_args(experiment)
     experiment.add_argument("model")
     experiment.add_argument("--contexts", required=True, help="Comma-separated contexts, e.g. 8k,16k,32k.")
@@ -436,6 +457,44 @@ def _cmd_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_auto(args: argparse.Namespace) -> int:
+    model = _resolve_model(args)
+    hardware = _resolve_hardware(args)
+    config = PlannerConfig(
+        target_context=parse_context(args.target_context),
+        memory_budget_bytes=parse_size(args.memory_budget),
+    )
+    plan = create_plan(model, hardware, config, capabilities=_resolve_capabilities(args))
+    command = build_run_command(args.model, plan.ollama_options, prompt=args.prompt)
+    payload = {
+        "hardware": hardware.to_dict(),
+        "model": model.to_dict(),
+        "plan": plan.to_dict(),
+        "command": command,
+        "next_step": "Run with --execute to call local Ollama." if not args.execute else "",
+    }
+    if args.json:
+        print(dumps_json(payload))
+        if args.execute:
+            import subprocess
+
+            return subprocess.run(command).returncode
+        return 0
+
+    print(render_plan_text(plan, model, hardware))
+    print("")
+    print("Recommended Ollama command:")
+    print(_quote_command(command))
+    if not args.execute:
+        print("")
+        print("Add --execute to run it through local Ollama.")
+        return 0
+
+    import subprocess
+
+    return subprocess.run(command).returncode
+
+
 def _cmd_bench(args: argparse.Namespace) -> int:
     models = args.models.split(",")
     contexts = args.contexts.split(",")
@@ -500,7 +559,7 @@ def _cmd_report(args: argparse.Namespace) -> int:
         tables = args.tables.split(",")
         if args.table != "all":
             tables = [args.table]
-        written = write_paper_tables(
+        written = write_fixed_tables(
             rows,
             args.output_dir,
             prefix=args.output_prefix,
@@ -513,12 +572,12 @@ def _cmd_report(args: argparse.Namespace) -> int:
         if args.table == "all":
             print(render_report_csv(rows), end="")
         else:
-            print(render_paper_table_csv(rows, args.table), end="")
+            print(render_fixed_table_csv(rows, args.table), end="")
     else:
         if args.table == "all":
             print(render_report_markdown(rows))
         else:
-            print(render_paper_table_markdown(rows, args.table))
+            print(render_fixed_table_markdown(rows, args.table))
     return 0
 
 
@@ -544,14 +603,14 @@ def _cmd_compare(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_rq1_summary(args: argparse.Namespace) -> int:
-    payload = build_rq1_summary_payload(args.machine_dir)
+def _cmd_baseline_summary(args: argparse.Namespace) -> int:
+    payload = build_baseline_summary_payload(args.machine_dir)
     if args.format == "json":
-        rendered = render_rq1_json(payload)
+        rendered = render_baseline_summary_json(payload)
     elif args.format == "csv":
-        rendered = render_rq1_csv(payload)
+        rendered = render_baseline_summary_csv(payload)
     else:
-        rendered = render_rq1_markdown(payload)
+        rendered = render_baseline_summary_markdown(payload)
     if args.output:
         _maybe_write_text(args.output, rendered + ("" if rendered.endswith("\n") else "\n"))
         print(dumps_json({"output": args.output, "rows": len(payload.get("rows", []))}))

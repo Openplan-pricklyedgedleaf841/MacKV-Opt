@@ -8,9 +8,9 @@ from typing import Any
 
 from .compare import CompareInput, build_compare_payload
 
-RQ1_LABELS = ("default", "manual-num-ctx", "mackv-opt")
+BASELINE_LABELS = ("default", "manual-num-ctx", "mackv-opt")
 
-RQ1_COLUMNS = [
+BASELINE_SUMMARY_COLUMNS = [
     "model",
     "default_max_stable_context",
     "manual_num_ctx_max_stable_context",
@@ -30,15 +30,15 @@ RQ1_COLUMNS = [
 ]
 
 
-def build_rq1_summary_payload(machine_dir: str) -> dict[str, Any]:
+def build_baseline_summary_payload(machine_dir: str) -> dict[str, Any]:
     root = Path(machine_dir)
-    rows = [_model_rq1_row(model_dir) for model_dir in sorted(root.iterdir()) if model_dir.is_dir()]
+    rows = [_model_baseline_row(model_dir) for model_dir in sorted(root.iterdir()) if model_dir.is_dir()]
     rows = [row for row in rows if row]
     return {
-        "task": "rq1-summary",
+        "task": "baseline-summary",
         "machine_dir": str(root),
-        "labels": list(RQ1_LABELS),
-        "columns": RQ1_COLUMNS,
+        "labels": list(BASELINE_LABELS),
+        "columns": BASELINE_SUMMARY_COLUMNS,
         "rows": rows,
         "summary": {
             "model_count": len(rows),
@@ -50,29 +50,29 @@ def build_rq1_summary_payload(machine_dir: str) -> dict[str, Any]:
     }
 
 
-def render_rq1_markdown(payload: dict[str, Any]) -> str:
-    return _render_markdown_table(payload.get("rows") or [], RQ1_COLUMNS)
+def render_baseline_summary_markdown(payload: dict[str, Any]) -> str:
+    return _render_markdown_table(payload.get("rows") or [], BASELINE_SUMMARY_COLUMNS)
 
 
-def render_rq1_csv(payload: dict[str, Any]) -> str:
+def render_baseline_summary_csv(payload: dict[str, Any]) -> str:
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=RQ1_COLUMNS, extrasaction="ignore", lineterminator="\n")
+    writer = csv.DictWriter(output, fieldnames=BASELINE_SUMMARY_COLUMNS, extrasaction="ignore", lineterminator="\n")
     writer.writeheader()
     for row in payload.get("rows") or []:
-        writer.writerow({column: row.get(column, "") for column in RQ1_COLUMNS})
+        writer.writerow({column: row.get(column, "") for column in BASELINE_SUMMARY_COLUMNS})
     return output.getvalue()
 
 
-def render_rq1_json(payload: dict[str, Any]) -> str:
+def render_baseline_summary_json(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
 
 
-def _model_rq1_row(model_dir: Path) -> dict[str, Any] | None:
-    artifacts = {
+def _model_baseline_row(model_dir: Path) -> dict[str, Any] | None:
+    outputs = {
         label: model_dir / label / "full-run.json"
-        for label in RQ1_LABELS
+        for label in BASELINE_LABELS
     }
-    existing = {label: path for label, path in artifacts.items() if path.exists()}
+    existing = {label: path for label, path in outputs.items() if path.exists()}
     if not existing:
         return None
     compare = build_compare_payload(
@@ -112,7 +112,7 @@ def _model_rq1_row(model_dir: Path) -> dict[str, Any] | None:
         "default_quality_accuracy": _value_or_empty(default.get("quality_accuracy")),
         "manual_num_ctx_quality_accuracy": _value_or_empty(manual.get("quality_accuracy")),
         "mackv_opt_quality_accuracy": _value_or_empty(optimized.get("quality_accuracy")),
-        "complete": all(label in existing for label in RQ1_LABELS),
+        "complete": all(label in existing for label in BASELINE_LABELS),
         "source": str(model_dir),
     }
 

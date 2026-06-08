@@ -403,7 +403,7 @@ def test_cli_report_readiness_accepts_multiple_inputs(tmp_path, capsys):
 
     assert code == 0
     output = capsys.readouterr().out
-    assert "| artifact_type | component | status |" in output
+    assert "| output_type | component | status |" in output
     assert "| collect-manifest | model-metadata | warn | llama3.1:8b |" in output
     assert "| collect-audit | summary | warn |" in output
 
@@ -411,7 +411,7 @@ def test_cli_report_readiness_accepts_multiple_inputs(tmp_path, capsys):
 
     assert code == 0
     compact = capsys.readouterr().out
-    assert "| paper_ready | status | artifact_type |" in compact
+    assert "| ready | status | output_type |" in compact
     assert "| False | warn | readiness-compact |" in compact
 
 

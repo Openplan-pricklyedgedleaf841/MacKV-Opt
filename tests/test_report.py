@@ -5,13 +5,13 @@ from mackv_opt.models import HardwareProfile, ModelProfile, OptimizationPlan
 from mackv_opt.report import (
     load_report_payload,
     normalize_report_rows,
-    render_paper_table_csv,
-    render_paper_table_markdown,
+    render_fixed_table_csv,
+    render_fixed_table_markdown,
     render_plan_text,
     render_report_csv,
     render_report_markdown,
     write_experiment_artifacts,
-    write_paper_tables,
+    write_fixed_tables,
 )
 
 
@@ -233,7 +233,7 @@ def test_report_normalizes_top_level_repeat_summaries():
     assert rows[1]["tokens_per_second_mean"] == 12.0
 
 
-def test_paper_table_renderers_filter_context_performance_memory_quality():
+def test_fixed_table_renderers_filter_context_performance_memory_quality():
     rows = [
         {"model": "m", "context": 8192, "method": "plan", "status": "fits", "cache_type_k": "f16"},
         {"model": "m", "method": "stability-summary", "max_stable_context": 32768, "stable_runs": 2, "unstable_runs": 1},
@@ -266,11 +266,11 @@ def test_paper_table_renderers_filter_context_performance_memory_quality():
         },
     ]
 
-    context_table = render_paper_table_markdown(rows, "context")
-    performance_csv = render_paper_table_csv(rows, "performance")
-    memory_table = render_paper_table_markdown(rows, "memory")
-    quality_table = render_paper_table_markdown(rows, "quality")
-    stability_table = render_paper_table_markdown(rows, "stability")
+    context_table = render_fixed_table_markdown(rows, "context")
+    performance_csv = render_fixed_table_csv(rows, "performance")
+    memory_table = render_fixed_table_markdown(rows, "memory")
+    quality_table = render_fixed_table_markdown(rows, "quality")
+    stability_table = render_fixed_table_markdown(rows, "stability")
 
     assert "| model | context | status |" in context_table
     assert "| m | 8192 | fits |" in context_table
@@ -347,22 +347,22 @@ def test_readiness_table_normalizes_collect_manifest_and_referenced_artifacts(tm
     }
 
     rows = normalize_report_rows(manifest)
-    table = render_paper_table_markdown(rows, "readiness")
+    table = render_fixed_table_markdown(rows, "readiness")
 
     assert any(row["artifact_type"] == "collect-manifest" and row["component"] == "model-metadata" for row in rows)
     assert any(row["artifact_type"] == "doctor" and row["component"] == "summary" for row in rows)
     assert any(row["artifact_type"] == "machine-profile" and row["component"] == "hardware" for row in rows)
     assert any(row["artifact_type"] == "runtime-capabilities" for row in rows)
-    assert "| artifact_type | component | status |" in table
+    assert "| output_type | component | status |" in table
     assert "| collect-manifest | model-metadata | pass | llama3.1:8b |" in table
     assert "Apple M3 Pro" in table
     assert "macOS 15.5" in table
     assert "ac" in table
     assert "0.12.1" in table
 
-    compact = render_paper_table_markdown(rows, "readiness-compact")
+    compact = render_fixed_table_markdown(rows, "readiness-compact")
 
-    assert "| paper_ready | status | artifact_type |" in compact
+    assert "| ready | status | output_type |" in compact
     assert "| True | pass | readiness-compact |" in compact
     assert "llama3.1:8b" in compact
 
@@ -393,13 +393,13 @@ def test_readiness_table_normalizes_audit_model_metadata_issues():
         }
     )
 
-    table = render_paper_table_markdown(rows, "readiness")
+    table = render_fixed_table_markdown(rows, "readiness")
 
     assert rows[0]["failed_checks"] == "model-metadata"
     assert rows[0]["warning_checks"] == "hardware"
     assert any(row["model"] == "qwen2.5:7b" for row in rows)
     assert "kv_head_count, layer_count" in table
-    assert "readiness-compact" in render_paper_table_markdown(rows, "readiness-compact")
+    assert "readiness-compact" in render_fixed_table_markdown(rows, "readiness-compact")
 
 
 def test_report_preserves_zero_quality_and_swap_values():
@@ -469,7 +469,7 @@ def test_report_normalizes_top_level_stability_summary():
     assert rows[2]["context_stable"] is True
 
 
-def test_context_paper_table_includes_stability_summary_rows():
+def test_context_fixed_table_includes_stability_summary_rows():
     rows = normalize_report_rows(
         {
             "runs": [{"model": "m", "context": 8192, "method": "ollama-api", "status": "ok"}],
@@ -508,13 +508,13 @@ def test_context_paper_table_includes_stability_summary_rows():
         }
     )
 
-    context_table = render_paper_table_markdown(rows, "context")
+    context_table = render_fixed_table_markdown(rows, "context")
 
     assert "max_stable_context" in context_table
     assert "| m |  |  |  |  |  |  |  |  | 16384 | 2 | 1 |" in context_table
 
 
-def test_stability_paper_table_includes_context_breakdown():
+def test_stability_fixed_table_includes_context_breakdown():
     rows = normalize_report_rows(
         {
             "runs": [{"model": "m", "context": 8192, "method": "ollama-api", "status": "ok"}],
@@ -544,13 +544,13 @@ def test_stability_paper_table_includes_context_breakdown():
         }
     )
 
-    stability_table = render_paper_table_markdown(rows, "stability")
+    stability_table = render_fixed_table_markdown(rows, "stability")
 
     assert "| model | context | stable_context_policy | min_stable_fraction |" in stability_table
     assert "| m | 8192 | fraction | 0.67 | True | 0.666667 | 2 | 1 | 3 | status=error:1 | 8192 |" in stability_table
 
 
-def test_cli_report_renders_fixed_paper_table(tmp_path, capsys):
+def test_cli_report_renders_fixed_table(tmp_path, capsys):
     report_file = tmp_path / "experiment.json"
     report_file.write_text(
         json.dumps(
@@ -571,19 +571,19 @@ def test_cli_report_renders_fixed_paper_table(tmp_path, capsys):
     assert "| llama3.1:8b | 8192 | 0.5 |  |  | True | 1.0 |" in output
 
 
-def test_write_paper_tables_writes_selected_tables(tmp_path):
+def test_write_fixed_tables_writes_selected_tables(tmp_path):
     rows = [
         {"model": "m", "context": 8192, "method": "plan", "status": "fits"},
         {"model": "m", "context": 8192, "method": "needle", "depth": 0.5, "found": False, "quality_score": 0.0},
     ]
 
-    written = write_paper_tables(rows, str(tmp_path), prefix="paper", tables=["context", "quality", "stability"])
+    written = write_fixed_tables(rows, str(tmp_path), prefix="table", tables=["context", "quality", "stability"])
 
     assert set(written) == {"context", "quality", "stability"}
-    assert (tmp_path / "paper-context.md").exists()
-    assert "| m | 8192 | fits |" in (tmp_path / "paper-context.md").read_text(encoding="utf-8")
-    assert "0.0" in (tmp_path / "paper-quality.md").read_text(encoding="utf-8")
-    assert (tmp_path / "paper-stability.md").exists()
+    assert (tmp_path / "table-context.md").exists()
+    assert "| m | 8192 | fits |" in (tmp_path / "table-context.md").read_text(encoding="utf-8")
+    assert "0.0" in (tmp_path / "table-quality.md").read_text(encoding="utf-8")
+    assert (tmp_path / "table-stability.md").exists()
 
 
 def test_cli_report_writes_all_fixed_tables(tmp_path, capsys):

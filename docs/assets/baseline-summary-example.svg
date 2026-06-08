@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="380" viewBox="0 0 960 380" role="img" aria-labelledby="title desc">
-  <title id="title">RQ1 summary example</title>
+  <title id="title">Baseline summary example</title>
   <desc id="desc">An example table and bars for default Ollama, manual num_ctx, and MacKV-Opt maximum stable context.</desc>
   <rect width="960" height="380" fill="#f9fafb"/>
-  <text x="42" y="48" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#111827">RQ1 output shape</text>
-  <text x="42" y="78" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#4b5563">The tool merges three baseline artifacts into a paper-ready maximum stable context table.</text>
+  <text x="42" y="48" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#111827">Baseline comparison output</text>
+  <text x="42" y="78" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#4b5563">MacKV-Opt merges default, manual num_ctx, and planned runs into one max-stable-context view.</text>
   <g font-family="Segoe UI, Arial, sans-serif">
     <text x="80" y="122" font-size="14" fill="#374151">default Ollama</text>
     <rect x="220" y="105" width="130" height="28" rx="4" fill="#93c5fd"/>
@@ -19,7 +19,7 @@
   </g>
   <g font-family="Consolas, Menlo, monospace" font-size="13">
     <rect x="80" y="270" width="800" height="64" rx="6" fill="#111827"/>
-    <text x="105" y="298" fill="#d1fae5">mackv-opt rq1-summary experiments/m2-16gb --output rq1-summary.md</text>
-    <text x="105" y="322" fill="#fde68a">mackv_opt_vs_default = 4.0x, mackv_opt_vs_manual_num_ctx = 2.0x</text>
+    <text x="105" y="298" fill="#d1fae5">mackv-opt compare default=... manual-num-ctx=... mackv-opt=...</text>
+    <text x="105" y="322" fill="#fde68a">max_stable_context_vs_default = 4.0x, vs_manual_num_ctx = 2.0x</text>
   </g>
 </svg>

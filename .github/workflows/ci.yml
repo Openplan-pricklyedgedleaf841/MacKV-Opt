@@ -83,7 +83,7 @@ jobs:
                   "stability_summary": {"models": [{"model": "llama3.1:8b", "max_stable_context": ctx}]}
               }), encoding="utf-8")
           PY
-          mackv-opt rq1-summary ci-baselines --output ci-baselines/rq1-summary.md
+          mackv-opt baseline-summary ci-baselines --output ci-baselines/baseline-summary.md
           mackv-opt needle --models llama3.1:8b --contexts 8k --depths 50% --dry-run --json --repeats 2
           mackv-opt qa --models llama3.1:8b --contexts 8k --depths 50% --dry-run --json --repeats 2
           mackv-opt experiment llama3.1:8b \

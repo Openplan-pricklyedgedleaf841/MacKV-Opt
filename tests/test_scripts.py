@@ -41,7 +41,7 @@ def test_run_macos_matrix_script_documents_safe_defaults_and_commands():
     assert "--stable-context-policy" in text
     assert "MACKV_MIN_STABLE_FRACTION" in text
     assert "--min-stable-fraction" in text
-    assert "paper-tables" in text
+    assert "report-tables" in text
     assert "MACKV_COMPARE_LABELS" in text
     assert "default,manual-num-ctx,mackv-opt" in text
     assert "MACKV_COMPARE_BASELINE" in text
@@ -59,7 +59,7 @@ def test_run_macos_matrix_script_documents_safe_defaults_and_commands():
     assert "Refusing executable runs" in text
     assert "--table readiness-compact" in text
     assert "--table readiness" in text
-    assert "$BASE_DIR/paper-tables" in text
+    assert "$BASE_DIR/report-tables" in text
     assert "mackv-opt compare" in text
     assert "matrix-compare.md" in text
     assert "matrix-compare.csv" in text
@@ -86,8 +86,8 @@ def test_github_metadata_sync_payload_matches_repository_profile():
 
     assert payload["repo"] == "Lin-Aurora/MacKV-Opt"
     assert payload["description"] == (
-        "KV cache and context planner for running longer local LLM contexts on "
-        "Apple Silicon Macs with Ollama-compatible benchmarks."
+        "KV cache and context planner for longer local LLM contexts on Apple "
+        "Silicon Macs with Ollama-compatible benchmarks."
     )
     assert payload["homepage"] == "https://github.com/Lin-Aurora/MacKV-Opt#readme"
     assert payload["topics_payload"]["names"] == [
@@ -102,7 +102,7 @@ def test_github_metadata_sync_payload_matches_repository_profile():
         "long-context",
         "mlx",
         "gguf",
-        "research-artifact",
+        "ollama-tools",
     ]
 
 
@@ -121,4 +121,4 @@ def test_github_metadata_sync_script_dry_run_outputs_json():
     assert payload["repo_patch_payload"]["homepage"] == (
         "https://github.com/Lin-Aurora/MacKV-Opt#readme"
     )
-    assert "research-artifact" in payload["topics"]
+    assert "ollama-tools" in payload["topics"]

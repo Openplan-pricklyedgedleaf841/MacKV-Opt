@@ -15,8 +15,8 @@ from typing import Any
 
 DEFAULT_REPO = "Lin-Aurora/MacKV-Opt"
 DESCRIPTION = (
-    "KV cache and context planner for running longer local LLM contexts on "
-    "Apple Silicon Macs with Ollama-compatible benchmarks."
+    "KV cache and context planner for longer local LLM contexts on Apple "
+    "Silicon Macs with Ollama-compatible benchmarks."
 )
 HOMEPAGE = "https://github.com/Lin-Aurora/MacKV-Opt#readme"
 TOPICS = [
@@ -31,7 +31,7 @@ TOPICS = [
     "long-context",
     "mlx",
     "gguf",
-    "research-artifact",
+    "ollama-tools",
 ]
 
 

@@ -42,7 +42,7 @@ def doctor_payload(
         _ollama_check(caps, local_models),
         _llama_cpp_check(caps),
         _memory_sampler_check(memory, process_memory),
-        _paper_readiness_check(hardware, caps, memory, local_models),
+        _run_readiness_check(hardware, caps, memory, local_models),
     ]
     status = _overall_status(checks)
     return {
@@ -86,11 +86,11 @@ def _hardware_check(hardware: HardwareProfile) -> DoctorCheck:
     elif is_darwin:
         status = "warn"
         message = "macOS was detected, but the machine does not look like Apple Silicon."
-        next_step = "Paper claims for Apple Silicon need arm64 Mac hardware."
+        next_step = "Apple Silicon validation needs arm64 Mac hardware."
     else:
         status = "warn"
         message = "This machine is not macOS; use it for development or smoke tests only."
-        next_step = "Run real memory-pressure experiments on Apple Silicon."
+        next_step = "Run memory-pressure validation on Apple Silicon."
     return DoctorCheck(
         name="hardware",
         status=status,
@@ -117,7 +117,7 @@ def _memory_pressure_check(hardware: HardwareProfile, memory: dict[str, Any]) ->
     else:
         status = "warn"
         message = "Memory pressure could not be verified on this platform."
-        next_step = "On macOS, confirm `memory_pressure` works before paper runs."
+        next_step = "On macOS, confirm `memory_pressure` works before executable validation."
     return DoctorCheck(
         name="memory-pressure",
         status=status,
@@ -147,7 +147,7 @@ def _runtime_environment_check(hardware: HardwareProfile) -> DoctorCheck:
             status="warn",
             message="Some macOS runtime environment fields are missing.",
             evidence={**hardware.to_dict(), "missing_environment_fields": missing},
-            next_step="Record macOS version, power source, and thermal state before paper runs.",
+            next_step="Record macOS version, power source, and thermal state before executable validation.",
         )
     return DoctorCheck(
         name="runtime-environment",
@@ -167,7 +167,7 @@ def _ollama_check(caps: dict[str, Any], models: list[dict[str, Any]]) -> DoctorC
     elif available:
         status = "warn"
         message = "Ollama is available, but no local models were listed."
-        next_step = "Pull or create at least one model before executable experiments."
+        next_step = "Pull or create at least one model before executable validation."
     else:
         status = "fail"
         message = "Ollama was not found on PATH."
@@ -198,7 +198,7 @@ def _llama_cpp_check(caps: dict[str, Any]) -> DoctorCheck:
     else:
         status = "warn"
         message = "llama.cpp was not found on PATH."
-        next_step = "Install llama.cpp for direct KV cache type experiments."
+        next_step = "Install llama.cpp for direct KV cache type validation."
     return DoctorCheck(
         name="llama.cpp",
         status=status,
@@ -219,7 +219,7 @@ def _memory_sampler_check(memory: dict[str, Any], process_memory_bytes: int | No
     elif pressure_known or swap_known or process_known:
         status = "warn"
         message = "Only partial memory sampling is available."
-        next_step = "Pair benchmark logs with Activity Monitor or powermetrics for paper claims."
+        next_step = "Pair benchmark logs with Activity Monitor or powermetrics for memory attribution."
     else:
         status = "warn"
         message = "Memory sampling is not fully available in this environment."
@@ -233,7 +233,7 @@ def _memory_sampler_check(memory: dict[str, Any], process_memory_bytes: int | No
     )
 
 
-def _paper_readiness_check(
+def _run_readiness_check(
     hardware: HardwareProfile,
     caps: dict[str, Any],
     memory: dict[str, Any],
@@ -248,14 +248,14 @@ def _paper_readiness_check(
     )
     if ready:
         status = "pass"
-        message = "This machine looks ready for MacKV-Opt executable experiments."
+        message = "This machine looks ready for MacKV-Opt executable validation."
         next_step = "Run `mackv-opt experiment ... --execute --repeats 3`."
     else:
         status = "warn"
-        message = "This environment is not yet sufficient for paper-grade Mac experiments."
+        message = "This environment is not yet sufficient for executable Mac validation."
         next_step = "Resolve failed or warning checks, then record profile and capabilities JSON."
     return DoctorCheck(
-        name="paper-readiness",
+        name="run-readiness",
         status=status,
         message=message,
         evidence={

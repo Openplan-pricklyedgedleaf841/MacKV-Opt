@@ -52,7 +52,7 @@ Environment variables:
                             Default: mackv-opt
   MACKV_WRITE_BASELINE_TEMPLATES
                             Set to 1 to pre-create default/manual-num-ctx/
-                            mackv-opt artifact directories. Default: 1
+                            mackv-opt output directories. Default: 1
   MACKV_FAIL_ON_MISSING_METADATA
                             Set to 1 to fail audit when model KV metadata is
                             incomplete. Default: 1 for execute, 0 for dry-run
@@ -61,7 +61,7 @@ Environment variables:
                             Apple Silicon. Default: 1 for execute, 0 for dry-run
   MACKV_INCLUDE_SERIES      Set to 1 to embed memory_series in JSON.
                             Default: 0
-  MACKV_EXECUTE             Set to 1 for real runs. Otherwise dry-run.
+  MACKV_EXECUTE             Set to 1 for executable runs. Otherwise dry-run.
                             Default: 0
   MACKV_EXTRA_ARGS          Extra args appended to every experiment command.
 
@@ -193,11 +193,11 @@ fi
 
 mackv-opt report "$BASE_DIR/collect" \
   --table readiness-compact \
-  --output-dir "$BASE_DIR/paper-tables" \
+  --output-dir "$BASE_DIR/report-tables" \
   --output-prefix readiness
 mackv-opt report "$BASE_DIR/collect" \
   --table readiness \
-  --output-dir "$BASE_DIR/paper-tables" \
+  --output-dir "$BASE_DIR/report-tables" \
   --output-prefix readiness
 
 for model in "${MODELS[@]}"; do
@@ -229,7 +229,7 @@ for model in "${MODELS[@]}"; do
     > "$out_dir/full-run.stdout.json"
 
   mackv-opt report "$out_dir/full-run.json" \
-    --output-dir "$out_dir/paper-tables" \
+    --output-dir "$out_dir/report-tables" \
     --output-prefix "$safe_model"
 
   compare_current_dir="$out_dir/$MACKV_COMPARE_CURRENT"
@@ -253,10 +253,10 @@ for model in "${MODELS[@]}"; do
     echo "Writing compare table for $model"
     mackv-opt compare "${compare_args[@]}" "${baseline_args[@]}" \
       --format markdown \
-      --output "$out_dir/paper-tables/$safe_model-compare.md"
+      --output "$out_dir/report-tables/$safe_model-compare.md"
     mackv-opt compare "${compare_args[@]}" "${baseline_args[@]}" \
       --format csv \
-      --output "$out_dir/paper-tables/$safe_model-compare.csv"
+      --output "$out_dir/report-tables/$safe_model-compare.csv"
   else
     echo "Skipping compare for $model; found ${#compare_args[@]} artifact(s)."
   fi
