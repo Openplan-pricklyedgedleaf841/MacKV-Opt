@@ -1,8 +1,52 @@
 # MacKV-Opt
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 MacKV-Opt is a local optimization helper for running large language models on
 Apple Silicon Macs. It keeps the user's chosen model unchanged and plans safer
 context, KV cache, and memory settings around the model instead.
+
+![MacKV-Opt architecture](docs/assets/mackv-opt-architecture.svg)
+
+![Validation snapshot](docs/assets/validation-snapshot.svg)
+
+![RQ1 summary example](docs/assets/rq1-summary-example.svg)
+
+## Project Validity
+
+This repository is meant to be runnable as a research artifact, not only a
+proposal. The current codebase includes a Python package, CLI entry point,
+planner tests, macOS profiler tests, benchmark/report tests, GitHub Actions
+smoke checks, and a real-Mac experiment checklist. The included diagrams show
+the implemented pipeline and the artifact shape expected from executed runs.
+
+What is validated today:
+
+- local planner and reporting logic with `python -m pytest -q`;
+- non-executing CLI smoke paths for profile, doctor, plan, run, bench, collect,
+  report, compare, baseline-template, RQ1 summary, Needle, and QA;
+- artifact generation for default Ollama, manual `num_ctx`, and MacKV-Opt
+  baselines;
+- macOS memory-pressure, swap, and `vm_stat` sampling fields in benchmark logs.
+
+What still needs real hardware before making paper performance claims:
+
+- executable Ollama runs on 16GB, 32GB, and 64GB Apple Silicon Macs;
+- measured maximum stable context, tokens/s, first-token latency, peak RSS,
+  swap/pageout deltas, and quality-retention results across the three baselines.
+
+## Repository Profile
+
+- About: KV cache and context planner for running longer local LLM contexts on
+  Apple Silicon Macs with Ollama-compatible benchmarks.
+- Homepage: <https://github.com/Lin-Aurora/MacKV-Opt#readme>
+- Topics: `apple-silicon`, `ollama`, `llama-cpp`, `kv-cache`, `local-llm`,
+  `llm-inference`, `macos`, `benchmark`, `long-context`, `mlx`, `gguf`,
+  `research-artifact`.
+
+The same values are recorded in
+[docs/GITHUB_REPOSITORY_METADATA.md](docs/GITHUB_REPOSITORY_METADATA.md) for
+repository administrators.
 
 The first release is an Ollama-compatible sidecar:
 
@@ -23,6 +67,8 @@ or sudden throughput collapse.
 
 ## Contents
 
+- [Project validity](#project-validity)
+- [Repository profile](#repository-profile)
 - [Why this exists](#why-this-exists)
 - [Install](#install)
 - [Quick start](#quick-start)

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">Validation snapshot</title>
+  <desc id="desc">A validation snapshot showing tests, CI smoke commands, memory sampling, and GitHub push checks.</desc>
+  <rect width="960" height="360" fill="#ffffff"/>
+  <text x="42" y="48" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#111827">Validation snapshot</text>
+  <text x="42" y="78" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#4b5563">Current repository checks before publication and real Mac experiments</text>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <g transform="translate(60 122)">
+      <rect width="180" height="150" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+      <text x="90" y="42" text-anchor="middle" font-size="40" font-weight="700" fill="#065f46">133</text>
+      <text x="90" y="72" text-anchor="middle" font-size="17" font-weight="700" fill="#064e3b">unit tests</text>
+      <text x="90" y="100" text-anchor="middle" font-size="13" fill="#047857">pytest passes locally</text>
+      <text x="90" y="122" text-anchor="middle" font-size="13" fill="#047857">Python package install</text>
+    </g>
+    <g transform="translate(280 122)">
+      <rect width="180" height="150" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+      <text x="90" y="42" text-anchor="middle" font-size="40" font-weight="700" fill="#1e3a8a">CI</text>
+      <text x="90" y="72" text-anchor="middle" font-size="17" font-weight="700" fill="#1e40af">smoke matrix</text>
+      <text x="90" y="100" text-anchor="middle" font-size="13" fill="#2563eb">Ubuntu + macOS</text>
+      <text x="90" y="122" text-anchor="middle" font-size="13" fill="#2563eb">Python 3.10 / 3.12</text>
+    </g>
+    <g transform="translate(500 122)">
+      <rect width="180" height="150" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+      <text x="90" y="42" text-anchor="middle" font-size="40" font-weight="700" fill="#7c2d12">VM</text>
+      <text x="90" y="72" text-anchor="middle" font-size="17" font-weight="700" fill="#9a3412">memory metrics</text>
+      <text x="90" y="100" text-anchor="middle" font-size="13" fill="#c2410c">pressure + swap</text>
+      <text x="90" y="122" text-anchor="middle" font-size="13" fill="#c2410c">pageout deltas</text>
+    </g>
+    <g transform="translate(720 122)">
+      <rect width="180" height="150" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+      <text x="90" y="42" text-anchor="middle" font-size="40" font-weight="700" fill="#4c1d95">Git</text>
+      <text x="90" y="72" text-anchor="middle" font-size="17" font-weight="700" fill="#5b21b6">clean push</text>
+      <text x="90" y="100" text-anchor="middle" font-size="13" fill="#6d28d9">source/docs/tests</text>
+      <text x="90" y="122" text-anchor="middle" font-size="13" fill="#6d28d9">no work artifacts</text>
+    </g>
+  </g>
+  <line x1="60" y1="310" x2="900" y2="310" stroke="#d1d5db" stroke-width="2"/>
+  <text x="60" y="334" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6b7280">Real throughput and context-improvement claims still require executable Apple Silicon runs.</text>
+</svg>

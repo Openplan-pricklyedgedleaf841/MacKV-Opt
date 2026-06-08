@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">MacKV-Opt architecture</title>
+  <desc id="desc">A pipeline showing profiling, planning, execution, measurement, and paper tables.</desc>
+  <rect width="960" height="360" fill="#f8fafc"/>
+  <text x="40" y="48" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">MacKV-Opt pipeline</text>
+  <text x="40" y="78" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#475569">Local-only planning and experiment artifacts for Ollama on Apple Silicon</text>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <g transform="translate(40 125)">
+      <rect width="150" height="115" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <text x="75" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#1e3a8a">Profile</text>
+      <text x="75" y="62" text-anchor="middle" font-size="13" fill="#1e40af">Mac memory</text>
+      <text x="75" y="82" text-anchor="middle" font-size="13" fill="#1e40af">Ollama models</text>
+      <text x="75" y="102" text-anchor="middle" font-size="13" fill="#1e40af">runtime flags</text>
+    </g>
+    <g transform="translate(220 125)">
+      <rect width="150" height="115" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+      <text x="75" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#14532d">Plan</text>
+      <text x="75" y="62" text-anchor="middle" font-size="13" fill="#166534">KV budget</text>
+      <text x="75" y="82" text-anchor="middle" font-size="13" fill="#166534">num_ctx</text>
+      <text x="75" y="102" text-anchor="middle" font-size="13" fill="#166534">cache strategy</text>
+    </g>
+    <g transform="translate(400 125)">
+      <rect width="150" height="115" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+      <text x="75" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#78350f">Run</text>
+      <text x="75" y="62" text-anchor="middle" font-size="13" fill="#92400e">Ollama API</text>
+      <text x="75" y="82" text-anchor="middle" font-size="13" fill="#92400e">default/manual</text>
+      <text x="75" y="102" text-anchor="middle" font-size="13" fill="#92400e">MacKV-Opt</text>
+    </g>
+    <g transform="translate(580 125)">
+      <rect width="150" height="115" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+      <text x="75" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#7f1d1d">Measure</text>
+      <text x="75" y="62" text-anchor="middle" font-size="13" fill="#991b1b">tokens/s</text>
+      <text x="75" y="82" text-anchor="middle" font-size="13" fill="#991b1b">memory pressure</text>
+      <text x="75" y="102" text-anchor="middle" font-size="13" fill="#991b1b">vm_stat</text>
+    </g>
+    <g transform="translate(760 125)">
+      <rect width="150" height="115" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+      <text x="75" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#4c1d95">Report</text>
+      <text x="75" y="62" text-anchor="middle" font-size="13" fill="#5b21b6">RQ1 table</text>
+      <text x="75" y="82" text-anchor="middle" font-size="13" fill="#5b21b6">CSV/Markdown</text>
+      <text x="75" y="102" text-anchor="middle" font-size="13" fill="#5b21b6">paper logs</text>
+    </g>
+    <g stroke="#64748b" stroke-width="2.5" fill="none" marker-end="url(#arrow)">
+      <path d="M190 182 L220 182"/>
+      <path d="M370 182 L400 182"/>
+      <path d="M550 182 L580 182"/>
+      <path d="M730 182 L760 182"/>
+    </g>
+  </g>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect x="40" y="286" width="870" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="475" y="308" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#334155">No model changes, no prompt upload, no cloud service required.</text>
+</svg>
