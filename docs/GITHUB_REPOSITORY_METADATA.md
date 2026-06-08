@@ -28,6 +28,20 @@ https://github.com/Lin-Aurora/MacKV-Opt#readme
 
 ## API Commands
 
+The repository includes a dependency-free helper that prints the exact payload
+by default:
+
+```bash
+python scripts/sync_github_metadata.py
+python scripts/sync_github_metadata.py --check
+```
+
+To apply the settings with a repository-admin token:
+
+```bash
+GITHUB_TOKEN=... python scripts/sync_github_metadata.py --apply
+```
+
 If the GitHub CLI is available:
 
 ```bash

@@ -33,5 +33,6 @@ def test_project_has_license_and_repository_metadata_notes():
     text = metadata.read_text(encoding="utf-8")
     assert "KV cache and context planner" in text
     assert "https://github.com/Lin-Aurora/MacKV-Opt#readme" in text
+    assert "python scripts/sync_github_metadata.py --apply" in text
     for topic in ["apple-silicon", "ollama", "kv-cache", "long-context", "research-artifact"]:
         assert topic in text

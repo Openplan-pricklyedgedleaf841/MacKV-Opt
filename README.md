@@ -46,7 +46,9 @@ What still needs real hardware before making paper performance claims:
 
 The same values are recorded in
 [docs/GITHUB_REPOSITORY_METADATA.md](docs/GITHUB_REPOSITORY_METADATA.md) for
-repository administrators.
+repository administrators, and can be applied with
+`python scripts/sync_github_metadata.py --apply` when a GitHub token is
+available in the environment.
 
 The first release is an Ollama-compatible sidecar:
 

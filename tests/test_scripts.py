@@ -1,4 +1,8 @@
 from pathlib import Path
+import importlib.util
+import json
+import subprocess
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,3 +65,60 @@ def test_run_macos_matrix_script_documents_safe_defaults_and_commands():
     assert "matrix-compare.csv" in text
     assert "-compare.md" in text
     assert "-compare.csv" in text
+
+
+def load_metadata_sync_module():
+    script = ROOT / "scripts" / "sync_github_metadata.py"
+    spec = importlib.util.spec_from_file_location("sync_github_metadata", script)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_github_metadata_sync_payload_matches_repository_profile():
+    module = load_metadata_sync_module()
+
+    metadata = module.build_metadata()
+    payload = module.dry_run_payload(metadata)
+
+    assert payload["repo"] == "Lin-Aurora/MacKV-Opt"
+    assert payload["description"] == (
+        "KV cache and context planner for running longer local LLM contexts on "
+        "Apple Silicon Macs with Ollama-compatible benchmarks."
+    )
+    assert payload["homepage"] == "https://github.com/Lin-Aurora/MacKV-Opt#readme"
+    assert payload["topics_payload"]["names"] == [
+        "apple-silicon",
+        "ollama",
+        "llama-cpp",
+        "kv-cache",
+        "local-llm",
+        "llm-inference",
+        "macos",
+        "benchmark",
+        "long-context",
+        "mlx",
+        "gguf",
+        "research-artifact",
+    ]
+
+
+def test_github_metadata_sync_script_dry_run_outputs_json():
+    script = ROOT / "scripts" / "sync_github_metadata.py"
+
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    payload = json.loads(result.stdout)
+
+    assert payload["repo"] == "Lin-Aurora/MacKV-Opt"
+    assert payload["repo_patch_payload"]["homepage"] == (
+        "https://github.com/Lin-Aurora/MacKV-Opt#readme"
+    )
+    assert "research-artifact" in payload["topics"]

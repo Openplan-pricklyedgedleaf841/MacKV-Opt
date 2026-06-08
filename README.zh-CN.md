@@ -32,7 +32,7 @@ MacKV-Opt 是一个面向 Apple Silicon Mac 本地大模型推理的优化工具
 - Homepage：<https://github.com/Lin-Aurora/MacKV-Opt#readme>
 - Topics：`apple-silicon`、`ollama`、`llama-cpp`、`kv-cache`、`local-llm`、`llm-inference`、`macos`、`benchmark`、`long-context`、`mlx`、`gguf`、`research-artifact`。
 
-同一份设置记录在 [docs/GITHUB_REPOSITORY_METADATA.md](docs/GITHUB_REPOSITORY_METADATA.md)，方便仓库管理员在 GitHub Settings 中同步。
+同一份设置记录在 [docs/GITHUB_REPOSITORY_METADATA.md](docs/GITHUB_REPOSITORY_METADATA.md)，方便仓库管理员在 GitHub Settings 中同步；环境中有 GitHub token 时，也可以用 `python scripts/sync_github_metadata.py --apply` 应用。
 
 ## 目标
 
